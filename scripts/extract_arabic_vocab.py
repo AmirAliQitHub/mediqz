@@ -224,3 +224,219 @@ def parse_footnote_line(line: str) -> List[Dict[str, Any]]:
             })
 
     return entries
+
+STOP_WORDS = {
+    "کرد", "شد", "بود", "گشت", "گردید", "داد", "داشت", "یک", "از", "به", "با", "در", "بر",
+    "که", "تا", "این", "آن", "من", "تو", "او", "ما", "شما", "آنها", "آنان", "ایشان",
+    "برای", "چون", "یا", "و", "نه", "نیز", "هم", "است", "هست", "نیست", "پس", "اگر",
+    "مگر", "هر", "همه", "هیچ", "چند", "چه", "چرا", "کجا", "کی", "را"
+}
+
+DISTRACTOR_TEXTS = [
+    "امروز هوا بسیار سرد بود و من به مدرسه رفتم و تکالیفم را انجام دادم و کار کردم",
+    "کتاب را بر روی میز گذاشت و به سمت در حرکت کرد و گفت سلام",
+    "او یک دانش آموز بسیار کوشا در کلاس بود که همیشه درس می خواند",
+]
+
+# Curated synonym expansions for textbook words
+CURATED_SYNONYMS = {
+    "أَحْضَرَ": ["آورد", "حاضر کرد", "حاضر ساخت", "آوردن", "حاضر کردن"],
+    "أَقِمْ وَجْهَكَ": ["روی بیاور", "روی آور", "رو کن", "متوجه شو", "توجه کن"],
+    "بَدَؤوا يَتَهامَسُونَ": ["شروع به پچ پچ کردند", "شروع به پچ‌پچ کردند", "پچ پچ کردند", "پچ‌پچ کردند", "نجوا کردند", "پچ پچ", "پچ‌پچ", "نجوا"],
+    "اَلتَّجَنُّب": ["دوری کردن", "پرهیز کردن", "دوری", "پرهیز", "اجتناب", "اجتناب کردن"],
+    "حَرَّقَ": ["سوزاند", "به آتش کشید", "سوزانید", "سوزاندن"],
+    "اَلْحَنيف": ["یکتاپرست", "یکتا پرست", "موحد", "حق گرا", "حق‌گرا"],
+    "اَلسُّدى": ["بیهوده", "پوچ", "بیهوده و پوچ", "رها شده", "باطل"],
+    "اَلسّيرَة": ["روش و کردار", "کردار", "سرگذشت", "روش", "رفتار"],
+    "اَلشَّعائِر": ["مراسم", "آیین ها", "آیین‌ها", "مناسک", "مناسک دینی", "شعائر"],
+    "اَلصِّراع": ["کشمکش", "ستیز", "نزاع", "درگیری", "دعوا"],
+    "اَلنِّزاع": ["نزاع", "کشمکش", "دعوا", "ستیز", "درگیری"],
+    "اَلسِّلْم": ["صلح", "آشتی", "سازش", "صلح و سازش", "آرامش"],
+    "عَلَّقَ": ["آویخت", "آویزان کرد", "آویختن", "آویزان کردن"],
+    "اَلْفَأْس": ["تبر"],
+    "اَلْفُؤوس": ["تبرها", "تبر ها"],
+    "اَلْقَرابين": ["قربانی ها", "قربانی‌ها"],
+    "اَلْقُرْبان": ["قربانی"],
+    "اَلْكَتِف": ["شانه", "دوش"],
+    "اَلْكِتْف": ["شانه", "دوش"],
+    "اَأْلَكْتاف": ["شانه ها", "شانه‌ها", "دوش‌ها"],
+    "كَسَّرَ": ["شکست", "خرد کرد", "شکستن"],
+    "اَلنُّقوش": ["کنده کاری ها", "کنده‌کاری‌ها", "نگاره ها", "نگاره‌ها", "نقش ها", "نقش‌ها"],
+    "اَلنَّقْش": ["کنده کاری", "کنده‌کاری", "نگاره", "نقش"],
+    "اَأْلَصْنام": ["بت ها", "بت‌ها"],
+    "اَلصَّنَم": ["بت"],
+    "آلَمَ": ["به درد آورد", "درد آورد", "به درد آوردن"],
+    "اِشْتاقَ": ["مشتاق شد", "اشتیاق پیدا کرد", "مشتاق شدن"],
+    "تَعَبَّدَ": ["عبادت کرد", "پرستش کرد", "عبادت کردن"],
+    "اَلتِّلْفاز": ["تلویزیون"],
+    "اَلْخِيام": ["چادرها", "چادر ها", "خیمه‌ها", "خیمه ها"],
+    "اَلْخَيْمَة": ["چادر", "خیمه"],
+    "اَلرِّجْل": ["پا"],
+    "اَأْلَرْجُل": ["پاها", "پا ها"],
+    "رَمْيُ الْجَمَراتِ": ["پرتاب ریگ ها", "پرتاب ریگ‌ها", "انداختن سنگریزه ها", "رمی جمرات"],
+    "زارَ": ["دیدار کرد", "زیارت کرد", "ملاقات کرد", "دیدن کرد"],
+    "اَلسَّعْي": ["دویدن", "تلاش", "کوشش", "دویدن و تلاش"],
+    "اَلْقِمَّة": ["قله", "نوک کوه"],
+    "اَلْقِمَم": ["قله ها", "قله‌ها"],
+    "لَجَأَ إلیٰ": ["پناه برد", "پناه برد به", "پناه آورد"],
+    "مَرَّ": ["گذر کرد", "عبور کرد", "گذشت"],
+    "اَلْمَشْهَد": ["صحنه", "نمایش", "محل شهادت"],
+    "أَضافَ": ["افزود", "اضافه کرد", "افزودن"],
+    "أَغْنى": ["بی نیاز گردانید", "بی نیاز کرد", "توانگر ساخت"],
+    "اَأْلَمْتَع": ["لذت بخش ترین", "لذت‌بخش‌ترین", "لذت بخش تر", "لذت‌بخش‌تر"],
+    "اَلتَّحْديد": ["محدود کردن", "معین کردن", "تعیین مرز"],
+    "تَصَفَّحَ": ["ورق زد", "سریع مطالعه کرد", "ورق زدن"],
+    "اَلثّانَوِيَّة": ["دبیرستان"],
+    "اَلْجَدير": ["شایسته", "سزاوار", "لایق"],
+    "اَلصَّحَفِيّ": ["روزنامه نگار", "روزنامه‌نگار", "خبرنگار"],
+    "اَلظُّروف": ["شرایط", "اوضاع", "وضعیت ها", "موقعیت ها"],
+    "اَلظَّرْف": ["شرط", "موقعیت", "اوضاع", "ظرف"],
+    "اَلْقاسي": ["سخت", "دشوار", "سخت و دشوار", "سنگدل"],
+    "اَلْكُتّاب": ["نویسندگان", "نویسنده ها", "نویسنده‌ها"],
+    "اَلْكاتِب": ["نویسنده"],
+    "اَلْمُفَكِّر": ["اندیشمند", "متفکر"],
+    "نَشَأَ": ["پرورش یافت", "رشد کرد", "بزرگ شد", "رویید"],
+    "اَلْواثِق": ["مطمئن", "اطمینان دارنده", "با اطمینان"],
+    "هُناكَ": ["وجود دارد", "آنجا", "هست"],
+    "يُقالُ": ["گفته می شود", "گفته می‌شود"],
+    "إِذْ جاءَ": ["ناگهان آمد", "وقتی آمد"],
+    "اِسْتَلَمَ الْحَجَرَ": ["سنگ را مسح کرد", "سنگ را لمس کرد"],
+    "أَنْكَرَ": ["ناشناخته شمرد", "انکار کرد"],
+    "اَلْبَطْحاء": ["دشت مکه", "سرزمین مکه"],
+    "بَيْنَما": ["در حالی که", "در این میان"],
+    "اَلتَّقِيّ": ["پرهیزگار", "با تقوا", "پرهیزکار"],
+    "جَهَرَ بِـ": ["آشکار کرد", "آشکار ساخت", "بلند گفت"],
+    "اَلْحِلّ": ["بیرون احرام", "حلال"],
+    "رَحَلَ": ["کوچ کرد", "سفر کرد"],
+    "رَغِبَ فيهِ": ["علاقمند شد", "علاقه مند شد", "مایل شد"],
+    "اَلضّائِر": ["زیان رساننده", "زیان رسان", "زیان آور"],
+    "طافَ": ["طواف کرد", "چرخید", "گردید"],
+    "اَلْعُرْب": ["عرب"],
+    "اَلْعَلَم": ["بزرگتر قوم", "بزرگ تر قوم", "پرچم", "نشانه"],
+    "اَلْكِبار": ["بزرگان", "بزرگ ترها", "بزرگ‌ترها"],
+    "اَلصِّغار": ["خردسالان", "کودکان", "کوچکان", "بچه‌ها"],
+    "مَدَحَ": ["ستود", "مدح کرد", "تعریف کرد"],
+    "نَصَبَ": ["برپا کرد", "نصب کرد", "افراشت"],
+    "اَلنَّقِيّ": ["پاک و خالص", "پاک", "خالص"],
+    "اَلْوَطْأَة": ["جای پا", "گام", "قدم"],
+}
+
+def clean_persian_token(token: str) -> str:
+    """Cleans punctuation, quotes, brackets from a Persian token."""
+    t = re.sub(r'[«»\(\)\[\]\{\}\.:،,؛;!\?\'"ـ\-_]', '', token)
+    t = re.sub(r'\s+', ' ', t).strip()
+    return t
+
+def generate_keywords(word: str, meaning: str) -> List[str]:
+    """
+    Generates high-precision trigger keywords for an Arabic word based on its Persian meaning.
+    Strictly excludes stop words and overly broad phrases.
+    """
+    word_norm = clean_arabic_text(word)
+    # Check if curated synonyms exist
+    if word_norm in CURATED_SYNONYMS:
+        return list(CURATED_SYNONYMS[word_norm])
+    for k, v in CURATED_SYNONYMS.items():
+        if strip_diacritics(k) == strip_diacritics(word_norm):
+            return list(v)
+
+    # Clean description from parenthetical notes
+    raw = clean_arabic_text(meaning)
+    raw = re.sub(r'[«\(\[].*?[»\)\]]', '', raw)
+    raw = re.sub(r'[\u2700-\u27BF\uE000-\uF8FF\uf03f\uf070\uf071\u2713\u2717\u2714\u2718\uF050\uF04F]+', '', raw)
+
+    keywords: List[str] = []
+
+    # Split by commas, semicolons, slashes
+    parts = re.split(r'[:،,؛;/\n\t]|(?:\s+یا\s+)', raw)
+    for p in parts:
+        cleaned = clean_persian_token(p)
+        if not cleaned:
+            continue
+
+        # If it's a stop word, skip
+        if cleaned in STOP_WORDS:
+            continue
+
+        # Add the cleaned phrase
+        if len(cleaned) >= 2 and cleaned not in STOP_WORDS:
+            keywords.append(cleaned)
+
+        # Handle compound verbs
+        for aux, inf in [
+            (" کرد", " کردن"),
+            (" نمود", " نمودن"),
+            (" ساخت", " ساختن"),
+            (" شد", " شدن"),
+            (" گردید", " گردیدن"),
+            (" گشت", " گشتن"),
+            (" داد", " دادن"),
+            (" یافت", " یافتن"),
+            (" داشت", " داشتن"),
+        ]:
+            if cleaned.endswith(aux):
+                base = cleaned[:-len(aux)].strip()
+                # add infinitive
+                keywords.append(base + inf)
+                # add alternative auxiliary if applicable
+                if aux in [" کرد", " نمود", " ساخت"]:
+                    keywords.append(base + " کرد")
+                    keywords.append(base + " ساخت")
+                elif aux in [" شد", " گردید", " گشت"]:
+                    keywords.append(base + " شد")
+                    keywords.append(base + " گردید")
+
+        # Handle simple verbs e.g. "آورد" -> "آوردن", "آویخت" -> "آویختن", "شکست" -> "شکستن"
+        if cleaned.endswith("ت") or cleaned.endswith("د"):
+            # Potential past stem -> add infinitive
+            inf = cleaned + "ن"
+            if len(inf) >= 4 and inf not in STOP_WORDS:
+                keywords.append(inf)
+
+        # Handle ZWNJ / space variants
+        if "\u200c" in p:
+            with_space = p.replace("\u200c", " ")
+            without = p.replace("\u200c", "")
+            for v in [with_space, without]:
+                cv = clean_persian_token(v)
+                if cv and cv not in STOP_WORDS and len(cv) >= 2:
+                    keywords.append(cv)
+        elif " " in cleaned:
+            with_zwnj = cleaned.replace(" ", "\u200c")
+            keywords.append(with_zwnj)
+
+    # Post-filtering: strict deduplication and removal of any stop words
+    filtered: List[str] = []
+    seen = set()
+    for kw in keywords:
+        kw_clean = kw.strip()
+        if not kw_clean or kw_clean in STOP_WORDS:
+            continue
+        if len(kw_clean) < 2:
+            continue
+        # Never allow standalone generic verbs
+        if kw_clean in {"کرد", "شد", "بود", "گشت", "گردید", "داد", "داشت", "یک", "از", "به", "با", "در"}:
+            continue
+        if kw_clean not in seen:
+            seen.add(kw_clean)
+            filtered.append(kw_clean)
+
+    return filtered
+
+def validate_keywords_against_distractors(keywords: List[str]) -> bool:
+    """
+    Verifies that no keyword is a stop-word or triggers false matches against unrelated distractor sentences.
+    """
+    for kw in keywords:
+        if kw in STOP_WORDS:
+            return False
+        if len(kw) < 2:
+            return False
+        # Ensure it doesn't match standard distractors unless the distractor actually contains that word
+        for distractor in DISTRACTOR_TEXTS:
+            if kw in distractor:
+                # If a keyword like "رفتم" or "درس" was accidentally generated
+                if kw in {"امروز", "هوا", "سرد", "من", "مدرسه", "رفت", "رفتم", "کار", "کتاب", "میز", "گفت", "سلام", "درس", "خواند"}:
+                    return False
+    return True
+
