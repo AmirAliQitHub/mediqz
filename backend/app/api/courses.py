@@ -28,7 +28,16 @@ ALIAS_MAP = {
     "arabic11": "arabic11_vocab",
     "arabic11_vocab": "arabic11_vocab",
     "arabic12": "arabic12_vocab",
-    "arabic12_vocab": "arabic12_vocab"
+    "arabic12_vocab": "arabic12_vocab",
+    "dini12": "dini12_ayat",
+    "dini12_ayat": "dini12_ayat",
+    "di12_ayat": "dini12_ayat",
+    "health12": "health12",
+    "he12": "health12",
+    "biology_ghayd": "biology_ghayd",
+    "bi_ghayd": "biology_ghayd",
+    "chemistry_elements": "chemistry_elements",
+    "ch_pt": "chemistry_elements"
 }
 
 def resolve_course_payload(raw_course_id: str, user_id: Optional[int] = None) -> Dict[str, Any]:
