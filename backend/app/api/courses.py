@@ -3,7 +3,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_optional_user
 from app.core.config import COURSES_DIR
 from app.core.database import get_user_db
 from app.models.schemas import CourseCompleteReq, CourseSummary, CourseImportReq
@@ -89,7 +89,7 @@ def resolve_course_payload(raw_course_id: str, user_id: Optional[int] = None) ->
     raise HTTPException(status_code=404, detail="دوره آموزشی یافت نشد.")
 
 @router.get("", response_model=List[CourseSummary])
-def list_courses(user: Optional[Dict[str, Any]] = Depends(get_current_user)):
+def list_courses(user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
     result: List[CourseSummary] = []
 
     # 1. Builtin courses from assets/courses
@@ -166,7 +166,7 @@ def list_courses(user: Optional[Dict[str, Any]] = Depends(get_current_user)):
     return result
 
 @router.get("/{course_id}")
-def get_course_detail(course_id: str, user: Optional[Dict[str, Any]] = Depends(get_current_user)):
+def get_course_detail(course_id: str, user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
     user_id = user["id"] if user else None
     return resolve_course_payload(course_id, user_id=user_id)
 

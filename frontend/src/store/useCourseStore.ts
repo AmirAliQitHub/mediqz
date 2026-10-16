@@ -1,0 +1,224 @@
+import { create } from 'zustand';
+import { CourseSummary, Course, Part, EU } from '../types';
+import { api } from '../services/api';
+
+export interface EUResult {
+  eu_id: string;
+  order: number;
+  type: string;
+  topic_tag: string;
+  title: string;
+  is_interactive: boolean;
+  status: 'correct' | 'wrong' | 'viewed' | 'unanswered';
+  user_answer?: string | null;
+  correct_answer?: string | null;
+}
+
+export interface AutoReviewItem {
+  course_id: string;
+  part_id: string;
+  title: string;
+  next_due_at?: string;
+}
+
+export interface ReviewSessionContext {
+  isReviewSession: boolean;
+  isAutomaticReview?: boolean;
+  reviewCourseId: string;
+  reviewPartId: string;
+  allEUs: EU[];
+  absentEuIds: string[];
+  previousSummary?: any;
+}
+
+interface CourseState {
+  courses: CourseSummary[];
+  selectedCourse: Course | null;
+  activePart: Part | null;
+  currentSlideIndex: number;
+  euResults: Record<string, EUResult>;
+  isPartCompleted: boolean;
+  isLoading: boolean;
+  reviewContext: ReviewSessionContext | null;
+  autoReviewQueue: AutoReviewItem[];
+  autoReviewIndex: number;
+  autoReviewActive: boolean;
+
+  fetchCourses: () => Promise<void>;
+  selectCourse: (courseId: string) => Promise<void>;
+  startPartPlayer: (partId: string) => void;
+  startReviewSession: (part: Part, course: Course, context: ReviewSessionContext) => void;
+  startAutomaticReviewSession: (items: AutoReviewItem[]) => void;
+  advanceAutomaticReview: () => boolean;
+  clearAutomaticReview: () => void;
+  nextSlide: () => void;
+  prevSlide: () => void;
+  recordEUResult: (euId: string, result: Partial<EUResult>) => void;
+  markCurrentPartDone: () => void;
+  resetPlayer: () => void;
+}
+
+export const useCourseStore = create<CourseState>((set, get) => ({
+  courses: [],
+  selectedCourse: null,
+  activePart: null,
+  currentSlideIndex: 0,
+  euResults: {},
+  isPartCompleted: false,
+  isLoading: false,
+  reviewContext: null,
+  autoReviewQueue: [],
+  autoReviewIndex: 0,
+  autoReviewActive: false,
+
+  fetchCourses: async () => {
+    set({ isLoading: true });
+    try {
+      const res = await api.get<CourseSummary[]>('/courses');
+      set({ courses: res, isLoading: false });
+    } catch {
+      set({ isLoading: false });
+    }
+  },
+
+  selectCourse: async (courseId: string) => {
+    set({ isLoading: true });
+    try {
+      const course = await api.get<Course>(`/courses/${encodeURIComponent(courseId)}`);
+      set({ selectedCourse: course, isLoading: false, reviewContext: null });
+    } catch (e) {
+      set({ isLoading: false });
+      throw e;
+    }
+  },
+
+  startPartPlayer: (partId: string) => {
+    const course = get().selectedCourse;
+    if (!course) return;
+    const part = course.parts.find((p) => p.part_id === partId) || course.parts[0];
+    if (!part) return;
+
+    const initialResults: Record<string, EUResult> = {};
+    part.eus.forEach((eu, idx) => {
+      initialResults[eu.id] = {
+        eu_id: eu.id,
+        order: eu.order || idx + 1,
+        type: eu.type,
+        topic_tag: eu.topic_tag || 'عمومی',
+        title: eu.payload?.word || eu.payload?.title || eu.payload?.statement || `واحد ${idx + 1}`,
+        is_interactive: eu.type !== 'learn_box',
+        status: eu.type === 'learn_box' ? 'viewed' : 'unanswered',
+      };
+    });
+
+    set({
+      activePart: part,
+      currentSlideIndex: 0,
+      euResults: initialResults,
+      isPartCompleted: false,
+      reviewContext: null,
+    });
+  },
+
+  startAutomaticReviewSession: (items) => {
+    const queue = [...items].sort((a, b) => {
+      if (a.next_due_at && b.next_due_at) {
+        return new Date(a.next_due_at).getTime() - new Date(b.next_due_at).getTime();
+      }
+      if (a.next_due_at) return -1;
+      if (b.next_due_at) return 1;
+      return a.title.localeCompare(b.title, 'fa');
+    });
+    set({ autoReviewQueue: queue, autoReviewIndex: 0, autoReviewActive: queue.length > 0 });
+  },
+
+  advanceAutomaticReview: () => {
+    const { autoReviewIndex, autoReviewQueue, autoReviewActive } = get();
+    if (!autoReviewActive) return false;
+    const nextIndex = autoReviewIndex + 1;
+    if (nextIndex < autoReviewQueue.length) {
+      set({ autoReviewIndex: nextIndex });
+      return true;
+    }
+    set({ autoReviewQueue: [], autoReviewIndex: 0, autoReviewActive: false });
+    return false;
+  },
+
+  clearAutomaticReview: () => {
+    set({ autoReviewQueue: [], autoReviewIndex: 0, autoReviewActive: false });
+  },
+
+  startReviewSession: (part: Part, course: Course, context: ReviewSessionContext) => {
+    const initialResults: Record<string, EUResult> = {};
+    part.eus.forEach((eu, idx) => {
+      initialResults[eu.id] = {
+        eu_id: eu.id,
+        order: eu.order || idx + 1,
+        type: eu.type,
+        topic_tag: eu.topic_tag || 'مرور',
+        title: eu.payload?.word || eu.payload?.title || eu.payload?.statement || `واحد ${idx + 1}`,
+        is_interactive: eu.type !== 'learn_box',
+        status: eu.type === 'learn_box' ? 'viewed' : 'unanswered',
+      };
+    });
+
+    set({
+      selectedCourse: course,
+      activePart: part,
+      currentSlideIndex: 0,
+      euResults: initialResults,
+      isPartCompleted: false,
+      reviewContext: context,
+    });
+  },
+
+  nextSlide: () => {
+    const { activePart, currentSlideIndex } = get();
+    if (!activePart) return;
+    if (currentSlideIndex < activePart.eus.length - 1) {
+      set({ currentSlideIndex: currentSlideIndex + 1 });
+    } else {
+      get().markCurrentPartDone();
+    }
+  },
+
+  prevSlide: () => {
+    const { currentSlideIndex } = get();
+    if (currentSlideIndex > 0) {
+      set({ currentSlideIndex: currentSlideIndex - 1 });
+    }
+  },
+
+  recordEUResult: (euId, result) => {
+    const { euResults } = get();
+    const existing = euResults[euId] || {
+      eu_id: euId,
+      order: 1,
+      type: 'custom',
+      topic_tag: 'عمومی',
+      title: 'واحد آموزشی',
+      is_interactive: true,
+      status: 'unanswered',
+    };
+    set({
+      euResults: {
+        ...euResults,
+        [euId]: { ...existing, ...result },
+      },
+    });
+  },
+
+  markCurrentPartDone: () => {
+    set({ isPartCompleted: true });
+  },
+
+  resetPlayer: () => {
+    set({
+      activePart: null,
+      currentSlideIndex: 0,
+      euResults: {},
+      isPartCompleted: false,
+      reviewContext: null,
+    });
+  },
+}));

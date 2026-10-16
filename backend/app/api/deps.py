@@ -54,3 +54,11 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> Dict:
         user_dict = dict(user)
         user_dict["session_token"] = token
         return user_dict
+
+async def get_optional_user(authorization: Optional[str] = Header(None)) -> Optional[Dict]:
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+    try:
+        return await get_current_user(authorization)
+    except HTTPException:
+        return None
