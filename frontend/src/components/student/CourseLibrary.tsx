@@ -6,10 +6,10 @@ import { api } from '../../services/api';
 const SUBJECT_FILTERS = [
   { id: 'all', label: 'همه محتواها' },
   { id: 'farsi', label: 'فارسی و ادبیات', keywords: ['فارسی', 'لغت', 'اعلام', 'واژه'] },
-  { id: 'grade10', label: 'پایه دهم', keywords: ['دهم', 'fa10', '10'] },
-  { id: 'grade11', label: 'پایه یازدهم', keywords: ['یازدهم', 'fa11', '11'] },
-  { id: 'grade12', label: 'پایه دوازدهم', keywords: ['دوازدهم', 'fa12', '12'] },
-  { id: 'arabic', label: 'عربی', keywords: ['عربی', 'arabic'] },
+  { id: 'grade10', label: 'پایه دهم', keywords: ['دهم', 'fa10', 'ar10', 'arabic10', '10'] },
+  { id: 'grade11', label: 'پایه یازدهم', keywords: ['یازدهم', 'fa11', 'ar11', 'arabic11', '11'] },
+  { id: 'grade12', label: 'پایه دوازدهم', keywords: ['دوازدهم', 'fa12', 'ar12', 'arabic12', '12'] },
+  { id: 'arabic', label: 'عربی', keywords: ['عربی', 'arabic', 'ar10', 'ar11', 'ar12'] },
   { id: 'biology', label: 'زیست‌شناسی', keywords: ['زیست', 'bio', 'نورولوژی', 'عصب'] },
 ];
 

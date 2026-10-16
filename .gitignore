@@ -49,5 +49,8 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
+# Source PDFs
+pdfs/
+
 # Superpowers and local scratch
 .superpowers/

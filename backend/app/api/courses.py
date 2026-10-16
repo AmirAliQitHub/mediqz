@@ -23,6 +23,10 @@ ALIAS_MAP = {
     "persian12": "persian12_vocab",
     "persian12_vocab": "persian12_vocab",
     "persian12_elam": "persian12_elam",
+    "arabic10": "arabic10_vocab",
+    "arabic10_vocab": "arabic10_vocab",
+    "arabic11": "arabic11_vocab",
+    "arabic11_vocab": "arabic11_vocab",
     "arabic12": "arabic12_vocab",
     "arabic12_vocab": "arabic12_vocab"
 }
@@ -104,7 +108,13 @@ def list_courses(user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
                     parts_count = len(parts) if parts else 1
 
                     subject = data.get("subject", "")
-                    grade = data.get("grade", "")
+                    raw_grade = str(data.get("grade", "")).strip()
+                    grade_map = {
+                        "10": "پایه دهم",
+                        "11": "پایه یازدهم",
+                        "12": "پایه دوازدهم"
+                    }
+                    grade = grade_map.get(raw_grade, raw_grade)
                     if not subject:
                         if "persian" in cid or "fa" in cid:
                             subject = "فارسی و ادبیات"
@@ -136,7 +146,7 @@ def list_courses(user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
                 continue
 
     # 2. User's imported custom courses
-    if user:
+    if user and isinstance(user, dict) and "id" in user:
         with get_user_db() as conn:
             rows = conn.execute(
                 "SELECT id, title, topic_code, course_json FROM imported_courses WHERE user_id = ? ORDER BY id DESC",
