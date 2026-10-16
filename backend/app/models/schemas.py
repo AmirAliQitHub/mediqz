@@ -1,0 +1,71 @@
+from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
+
+class UserRegisterReq(BaseModel):
+    username: str
+    password: str
+    display_name: Optional[str] = None
+
+class UserLoginReq(BaseModel):
+    username: str
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    display_name: str
+    avatar_url: str = ""
+    access_level: str = "S2"
+
+class CourseCompleteReq(BaseModel):
+    course_id: str
+    part_id: str
+    title: str
+    topic_code: Optional[str] = None
+    total_slides: int
+    correct_count: int
+    wrong_count: int
+    score_percentage: float
+    details_payload: Optional[str] = None
+
+class CourseSummary(BaseModel):
+    id: str
+    title: str
+    topic_code: str = ""
+    subject: str = ""
+    grade: str = ""
+    description: str = ""
+    parts_count: int = 1
+    slides_count: int = 0
+    type: str = "builtin"
+    is_review: bool = False
+
+class PartReviewRecord(BaseModel):
+    id: int
+    course_id: str
+    part_id: str
+    title: str
+    topic_code: str
+    review_step: int
+    last_reviewed_at: Optional[str] = None
+    next_due_at: Optional[str] = None
+    is_delayed: int = 0
+    manual_review_date: Optional[str] = None
+    created_at: Optional[str] = None
+    course_title: Optional[str] = None
+    part_title: Optional[str] = None
+    is_due: bool = False
+
+class ReviewSessionSubmitReq(BaseModel):
+    course_id: str
+    part_id: str
+    included_results: Dict[str, str] # eu_id -> 'correct' | 'incorrect' | 'null'
+    absent_eu_ids: Optional[List[str]] = None
+    summary: Dict[str, Any]
+
+class CourseImportReq(BaseModel):
+    title: str
+    topic_code: Optional[str] = "CUSTOM"
+    description: Optional[str] = ""
+    parts: Optional[List[Dict[str, Any]]] = None
+    eus: Optional[List[Dict[str, Any]]] = None
