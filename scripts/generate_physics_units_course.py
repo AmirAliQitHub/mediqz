@@ -1,0 +1,378 @@
+"""
+Generator for Physics SI Units & Dimensional Analysis Course (physics_units_si.json)
+Covers 36 high-yield EUs across mechanics, electromagnetism, and atomic physics.
+"""
+import sys
+import json
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scripts.extract_arabic_vocab import STOP_WORDS
+
+PARTS_DATA = [
+    {
+        "part_id": "ph_units_p1",
+        "title": "بخش اول: یکاهای مکانیک، فشار، کار و گرما",
+        "description": "نیوتون، ژول، وات، پاسکال و ضرایب در یکاهای اصلی SI (کیلوگرم، متر، ثانیه)",
+        "items": [
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای نیرو در SI",
+                "word": "یکای نیرو: نیوتون (N)",
+                "translation": "بر حسب یکاهای اصلی: kg·m/s² (کیلوگرم در متر بر مجذور ثانیه). برآمده از رابطه قانون دوم نیوتون F = ma.",
+                "keywords": ["kg.m/s2", "کیلوگرم متر بر مجذور ثانیه", "kg m s-2", "نیوتون"],
+                "hint": "حاصل ضرب جرم در شتاب بر حسب یکاهای بنیادین."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای انرژی و کار در SI",
+                "word": "یکای انرژی و کار: ژول (J)",
+                "translation": "بر حسب یکاهای اصلی: kg·m²/s² (نیوتون در متر). حاصل ضرب نیرو در جابه‌جایی W = F·d.",
+                "keywords": ["kg.m2/s2", "کیلوگرم مجذور متر بر مجذور ثانیه", "ژول", "نیوتون متر"],
+                "hint": "یکای کار و تمام صورت‌های انرژی مکانیکی و گرمایی."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای توان در SI",
+                "word": "یکای توان: وات (W)",
+                "translation": "بر حسب یکاهای اصلی: kg·m²/s³ (ژول بر ثانیه J/s). آهنگ انجام کار یا تبدیل انرژی P = W/t.",
+                "keywords": ["وات", "ژول بر ثانیه", "kg.m2/s3", "J/s"],
+                "hint": "آهنگ مصرف یا تولید انرژی در واحد زمان."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای فشار در SI",
+                "word": "یکای فشار: پاسکال (Pa)",
+                "translation": "بر حسب یکاهای اصلی: kg/(m·s²) (نیوتون بر متر مربع N/m²). حاصل تقسیم نیرو بر سطح P = F/A.",
+                "keywords": ["پاسکال", "نیوتون بر متر مربع", "N/m2", "kg/m.s2"],
+                "hint": "نیروی عمودی وارد بر یکای سطح."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "هم‌ارزی یکاها",
+                "statement": "حاصل عبارت «پاسکال در متر مکعب» (Pa·m³) هم‌ارز با یکای ژول (J) برای انرژی و کار است.",
+                "is_correct": True,
+                "explanation": "درست - Pa·m³ = (N/m²)·m³ = N·m = ژول (J). کار انجام‌شده در تغییر حجم گاز W = P·ΔV."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "گرمای ویژه",
+                "word": "یکای گرمای ویژه (c) در SI",
+                "translation": "یکای SI: ژول بر کیلوگرم کلوین J/(kg·K). گرمای لازم برای افزایش یک کلوین دمای یک کیلوگرم ماده.",
+                "keywords": ["ژول بر کیلوگرم کلوین", "J/kg.K", "J/(kg.K)"],
+                "hint": "از رابطه Q = mcΔT به دست می‌آید."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "یکاهای اصلی SI",
+                "statement": "در دستگاه بین‌المللی یکاها (SI)، کمیت‌های اصلی شامل ۷ کمیت طول، جرم، زمان، دما، جریان الکتریکی، مقدار ماده و شدت نور هستند.",
+                "is_correct": True,
+                "explanation": "درست - این ۷ کمیت و یکاهای متر، کیلوگرم، ثانیه، کلوین، آمپر، مول و شمع پایه‌های بنیادی فیزیک هستند."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "ثابت فنر",
+                "word": "یکای ثابت فنر (k) در قانون هوک",
+                "translation": "یکای SI: نیوتون بر متر (N/m) یا بر حسب یکاهای اصلی kg/s² (کیلوگرم بر مجذور ثانیه).",
+                "keywords": ["N/m", "نیوتون بر متر", "kg/s2"],
+                "hint": "از قانون هوک F = kx به دست می‌آید."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "دیمانسیون چگالی",
+                "statement": "یکای چگالی در SI گرم بر سانتی‌متر مکعب (g/cm³) است.",
+                "is_correct": False,
+                "explanation": "نادرست - یکای استاندارد چگالی در SI کیلوگرم بر متر مکعب (kg/m³) است؛ ۱ g/cm³ معادل ۱۰۰۰ kg/m³ می‌باشد."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "اندازه‌حرکت (تکانه)",
+                "word": "یکای تکانه خطی (p = mv) در SI",
+                "translation": "یکای SI: کیلوگرم متر بر ثانیه (kg·m/s) یا نیوتون در ثانیه (N·s).",
+                "keywords": ["kg.m/s", "N.s", "نیوتون ثانیه"],
+                "hint": "حاصل ضرب جرم در سرعت یا حاصل ضرب نیرو در زمان ضربه."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "هم‌ارزی کار و گشتاور",
+                "statement": "یکای گشتاور نیرو (N·m) با یکای کار (J) یکسان است اما ماهیت برداری و نرده‌ای متفاوتی دارند.",
+                "is_correct": True,
+                "explanation": "درست - هر دو بعد N·m دارند، اما کار کمیت نرده‌ای (اسکالر) با یکای ژول است و گشتاور کمیت برداری بوده و هرگز با ژول نامیده نمی‌شود."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "رسانندگی گرمایی",
+                "word": "یکای آهنگ انتقال گرما (H = Q/t)",
+                "translation": "یکای SI: وات (W) یا ژول بر ثانیه (J/s). انرژی گرمایی منتقل شده در یکای زمان.",
+                "keywords": ["وات", "W", "J/s"],
+                "hint": "آهنگ جریان حرارت توان حرارتی است و یکای آن وات است."
+            }
+        ]
+    },
+    {
+        "part_id": "ph_units_p2",
+        "title": "بخش دوم: یکاهای الکتریسیته، مغناطیس و القا",
+        "description": "ولت، اهم، فاراد، تسلا، وبر و هانری در دستگاه بین‌المللی یکاها",
+        "items": [
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای بار الکتریکی",
+                "word": "یکای بار الکتریکی: کولن (C)",
+                "translation": "بر حسب یکاهای اصلی: آمپر در ثانیه (A·s). بار عبوری از مدار با جریان یک آمپر در مدت یک ثانیه q = I·t.",
+                "keywords": ["A.s", "آمپر ثانیه", "کولن"],
+                "hint": "حاصل ضرب شدت جریان در زمان."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای پتانسیل الکتریکی",
+                "word": "یکای اختلاف پتانسیل: ولت (V)",
+                "translation": "بر حسب یکاهای اصلی: kg·m²/(s³·A) (ژول بر کولن J/C). کار لازم برای جابه‌جایی یک کولن بار الکتریکی V = W/q.",
+                "keywords": ["J/C", "ژول بر کولن", "ولت", "kg.m2/s3.A"],
+                "hint": "انرژی پتانسیل الکتریکی به ازای واحد بار."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای مقاومت الکتریکی",
+                "word": "یکای مقاومت الکتریکی: اهم (Ω)",
+                "translation": "بر حسب یکاهای اصلی: kg·m²/(s³·A²) (ولت بر آمپر V/A). قانون اهم R = V/I.",
+                "keywords": ["اهم", "ولت بر آمپر", "V/A"],
+                "hint": "نسبت اختلاف پتانسیل دو سر رسانا به شدت جریان عبوری."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای ظرفیت خازن",
+                "word": "یکای ظرفیت خازن: فاراد (F)",
+                "translation": "بر حسب یکاهای اصلی: s⁴·A²/(kg·m²) (کولن بر ولت C/V). ظرفیت ذخیره بار به ازای پتانسیل C = q/V.",
+                "keywords": ["فاراد", "کولن بر ولت", "C/V"],
+                "hint": "نسبت بار الکتریکی صفحات خازن به ولتاژ آن."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای میدان مغناطیسی",
+                "word": "یکای میدان مغناطیسی: تسلا (T)",
+                "translation": "بر حسب یکاهای اصلی: kg/(s²·A) (نیوتون بر آمپر متر N/(A·m)). از رابطه نیروی مغناطیسی F = I·L·B.",
+                "keywords": ["تسلا", "N/A.m", "kg/s2.A", "وبر بر متر مربع"],
+                "hint": "نیروی وارد بر سیم یک متری با جریان یک آمپر عمود بر میدان."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای شار مغناطیسی",
+                "word": "یکای شار مغناطیسی: وبر (Wb)",
+                "translation": "بر حسب یکاهای اصلی: kg·m²/(s²·A) (تسلا در متر مربع T·m² یا ولت در ثانیه V·s). شار Φ = B·A·cosθ.",
+                "keywords": ["وبر", "T.m2", "تسلا متر مربع", "V.s", "ولت ثانیه"],
+                "hint": "حاصل ضرب میدان مغناطیسی در مساحت عمود بر خطوط میدان."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "یکای ضریب خودالقایی",
+                "word": "یکای ضریب خودالقایی (القاوری): هانری (H)",
+                "translation": "بر حسب یکاهای اصلی: kg·m²/(s²·A²) (وبر بر آمپر Wb/A یا اهم در ثانیه Ω·s). از رابطه نیرو محرکه القایی ε = -L·(ΔI/Δt).",
+                "keywords": ["هانری", "Wb/A", "وبر بر آمپر", "اهم ثانیه", "Ohm.s"],
+                "hint": "ویژگی سیملوله در برابر تغییرات جریان الکتریکی."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "هم‌ارزی ولت و وبر",
+                "statement": "بر اساس قانون القای الکترومغناطیسی فارادی، یکای وبر بر ثانیه (Wb/s) هم‌ارز با ولت (V) است.",
+                "is_correct": True,
+                "explanation": "درست - نیرو محرکه القایی حاصل آهنگ تغییر شار است (ε = -ΔΦ/Δt)؛ بنابراین ۱ V = ۱ Wb/s است."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "تسلا و گاوس",
+                "statement": "هر تسلا (T) معادل ۱۰۰ گاوس (G) است.",
+                "is_correct": False,
+                "explanation": "نادرست - هر تسلا برابر ۱۰،۰۰۰ گاوس (۱۰⁴ G) است؛ میدان مغناطیسی زمین در حدود ۰.۵ گاوس است."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "مقاومت ویژه",
+                "word": "یکای مقاومت ویژه الکتریکی (ρ) در SI",
+                "translation": "یکای SI: اهم در متر (Ω·m). از رابطه مقاومت رسانا R = ρ·(L/A).",
+                "keywords": ["اهم متر", "Ω.m", "Ohm.m"],
+                "hint": "ویژگی ذاتی ماده در برابر عبور جریان مستقل از ابعاد هندسی."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "یکای ثابت تراوایی خلا",
+                "statement": "یکای ضریب تراوایی مغناطیسی خلأ (μ0) تسلا متر بر آمپر (T·m/A) یا هانری بر متر (H/m) است.",
+                "is_correct": True,
+                "explanation": "درست - در رابطه میدان سیم راست B = μ0·I/(2πr)، یکای μ0 برابر T·m/A یا H/m می‌باشد."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "چگالی انرژی میدان",
+                "word": "یکای چگالی انرژی میدان الکتریکی و مغناطیسی (u)",
+                "translation": "یکای SI: ژول بر متر مکعب (J/m³) یا پاسکال (Pa). انرژی ذخیره شده به ازای واحد حجم میدان.",
+                "keywords": ["J/m3", "ژول بر متر مکعب", "پاسکال"],
+                "hint": "انرژی ذخیره‌شده به ازای حجم فضای دارای میدان."
+            }
+        ]
+    },
+    {
+        "part_id": "ph_units_p3",
+        "title": "بخش سوم: یکاهای نوسان، موج، صوت و فیزیک اتمی",
+        "description": "هرتز، رادیان، دسی‌بل، ثابت پلانک، الکترون‌ولت و نیمه‌عمر",
+        "items": [
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "بسامد (فرکانس)",
+                "word": "یکای بسامد: هرتز (Hz)",
+                "translation": "بر حسب یکاهای اصلی: یک بر ثانیه یا ثانیه منهای یک (s⁻¹). تعداد نوسان‌ها در هر ثانیه f = 1/T.",
+                "keywords": ["هرتز", "1/s", "s-1", "یک بر ثانیه"],
+                "hint": "عکس دوره تناوب زمانی."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "بسامد زاویه‌ای",
+                "word": "یکای بسامد زاویه‌ای (ω) در حرکت هماهنگ ساده",
+                "translation": "یکای SI: رادیان بر ثانیه (rad/s) یا s⁻¹. از رابطه ω = 2π/T = 2πf.",
+                "keywords": ["رادیان بر ثانیه", "rad/s"],
+                "hint": "آهنگ تغییر فاز نوسان در واحد زمان."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "ثابت پلانک",
+                "word": "یکای ثابت پلانک (h) در فیزیک کوانتومی",
+                "translation": "یکای SI: ژول در ثانیه (J·s) یا بر حسب یکاهای اصلی kg·m²/s. از رابطه انرژی فوتون E = hf.",
+                "keywords": ["J.s", "ژول ثانیه", "kg.m2/s"],
+                "hint": "ضریب تناسب انرژی نور با بسامد آن."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "الکترون‌ولت",
+                "statement": "الکترون‌ولت (eV) یکای اختلاف پتانسیل الکتریکی در ابعاد اتمی است.",
+                "is_correct": False,
+                "explanation": "نادرست - الکترون‌ولت (eV) یکای بسیار کوچک انرژی است؛ ۱ eV = ۱.۶ × ۱۰⁻¹⁹ ژول است."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "تراز شدت صوت",
+                "word": "یکای تراز شدت صوت (β)",
+                "translation": "یکای تراز شدت صوت: دسی‌بل (dB). مقیاس لگاریتمی سنجش بلندی صوت بر مبنای توان ۱۰ نسبت به شدت آستانه شنوایی.",
+                "keywords": ["دسی بل", "dB"],
+                "hint": "یکای لگاریتمی اندازه‌گیری تراز صوت."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "شدت صوت",
+                "word": "یکای شدت صوت (I) در SI",
+                "translation": "یکای SI: وات بر متر مربع (W/m²). توان صوتی عبوری عمود بر یکای مساحت I = P/A.",
+                "keywords": ["W/m2", "وات بر متر مربع"],
+                "hint": "توان متوسط امواج صوتی در واحد سطح."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "طول موج",
+                "statement": "طول موج (λ) فاصله طی‌شده توسط موج در یک دوره تناوب (T) است و یکای آن در SI متر (m) می‌باشد.",
+                "is_correct": True,
+                "explanation": "درست - طول موج فاصله میان دو قله متوالی و یکای آن متر است (λ = v·T = v/f)."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "ثابت ریدبرگ",
+                "word": "یکای ثابت ریدبرگ (R) در طیف اتمی هیدروژن",
+                "translation": "یکای SI: یک بر متر (m⁻¹). از رابطه ۱/λ = R·(1/n'² - 1/n²).",
+                "keywords": ["1/m", "m-1", "یک بر متر"],
+                "hint": "ضریب معادله خطوط طیفی بور و ریدبرگ."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "پدیده فوتوالکتریک",
+                "statement": "تابع کار فلز (W0) کمترین انرژی فوتون لازم برای جدا کردن الکترون از سطح فلز است و یکای آن ژول (J) یا الکترون‌ولت (eV) است.",
+                "is_correct": True,
+                "explanation": "درست - تابع کار انرژی بستگی الکترون به فلز است و ماهیت انرژی دارد."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "طول موج دوبروی",
+                "word": "رابطه و یکای طول موج ماده (دوبروی λ = h/p)",
+                "translation": "یکای SI: متر (m). حاصل تقسیم ثابت پلانک (J·s) بر تکانه ذره (kg·m/s).",
+                "keywords": ["متر", "m"],
+                "hint": "طول موج موج مادی متناظر با ذرات متحرک."
+            },
+            {
+                "type": "correct_incorrect",
+                "topic_tag": "آهنگ واپاشی هسته‌ای",
+                "statement": "یکای فعالیت پرتوزایی هسته‌ای در SI بکرل (Bq) به معنی یک واپاشی در هر ثانیه است.",
+                "is_correct": True,
+                "explanation": "درست - ۱ بکرل (Bq) معادل ۱ واپاشی بر ثانیه است؛ کوری (Ci) یکای سنتی قدیمی‌تر آن است."
+            },
+            {
+                "type": "fill_in_the_blank",
+                "topic_tag": "شاخص شکست نور",
+                "word": "یکای ضریب شکست نور (n = c/v)",
+                "translation": "کمیت بدون یکا (دیمانسیون صفر). نسبت تندی نور در خلأ به تندی نور در محیط مادی.",
+                "keywords": ["بدون یکا", "بی یکا", "فاقد یکا"],
+                "hint": "نسبت دو کمیت هم‌جنس تندی فاقد یکاست."
+            }
+        ]
+    }
+]
+
+def build_physics_units_course():
+    parts = []
+    order_idx = 1
+    total_eus_count = 0
+
+    for part_data in PARTS_DATA:
+        eus = []
+        eu_order = 1
+        for item in part_data["items"]:
+            eu_id = f"PH-UN-P{order_idx}-{eu_order}"
+            eu_type = item["type"]
+
+            if eu_type == "fill_in_the_blank":
+                cleaned_kws = [k.strip() for k in item["keywords"] if k.strip() not in STOP_WORDS or len(k.strip()) > 2]
+                p_load = {
+                    "word": item["word"],
+                    "translation": item["translation"],
+                    "keywords": cleaned_kws,
+                    "hint": item["hint"]
+                }
+            else:
+                p_load = {
+                    "statement": item["statement"],
+                    "is_correct": item["is_correct"],
+                    "explanation": item["explanation"]
+                }
+
+            eu = {
+                "id": eu_id,
+                "type": eu_type,
+                "order": eu_order,
+                "topic_tag": item["topic_tag"],
+                "payload": p_load
+            }
+            eus.append(eu)
+            eu_order += 1
+            total_eus_count += 1
+
+        parts.append({
+            "part_id": part_data["part_id"],
+            "title": part_data["title"],
+            "description": part_data["description"],
+            "order": order_idx,
+            "eus": eus
+        })
+        order_idx += 1
+
+    course_data = {
+        "course_id": "physics_units_si",
+        "title": "الفبای یکاها، دیمانسیون و نمادهای SI فیزیک",
+        "topic_code": "ph_units",
+        "subject": "فیزیک",
+        "grade": "جامع کنکور",
+        "description": "تسلط کامل بر تسلا، وبر، هانری، فاراد، پاسکال، ژول، وات و بسط یکاهای فرعی بر حسب ۷ یکای اصلی SI",
+        "parts": parts
+    }
+
+    out_file = Path("backend/assets/courses/physics_units_si.json")
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(course_data, f, ensure_ascii=False, indent=2)
+
+    print(f"Generated {out_file}: {len(parts)} parts, {total_eus_count} total EUs.")
+
+if __name__ == "__main__":
+    build_physics_units_course()
