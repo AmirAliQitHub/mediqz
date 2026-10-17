@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { EU } from '../../../types';
 import { useCourseStore } from '../../../store/useCourseStore';
+import { soundEffects } from '../../../services/soundEffects';
+import { fireGoldenCelebration } from '../../common/ConfettiEffect';
 
 interface Props {
  eu: EU;
@@ -22,6 +24,12 @@ export const CorrectIncorrect: React.FC<Props> = ({ eu }) => {
  setSelectedAnswer(choice);
  setShowExplanation(true);
  const isCorrect = choice === p.is_correct;
+ if (isCorrect) {
+  soundEffects.playSuccessChime();
+  fireGoldenCelebration();
+ } else {
+  soundEffects.playFailureThud();
+ }
  recordEUResult(eu.id, {
   status: isCorrect ? 'correct' : 'wrong',
   user_answer: choice ? 'صحیح' : 'غلط',

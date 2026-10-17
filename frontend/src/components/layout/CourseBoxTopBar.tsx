@@ -1,14 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, VolumeX, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useReviewStore } from '../../store/useReviewStore';
 import { useCourseStore } from '../../store/useCourseStore';
 import { UserProfileMenu } from './UserProfileMenu';
 import { AlqualiteLogo } from '../common/AlqualiteLogo';
+import { soundEffects } from '../../services/soundEffects';
 
 export const CourseBoxTopBar: React.FC = () => {
   const { activeTab, setActiveTab } = useAuthStore();
   const { urgentNotifications } = useReviewStore();
   const { reviewContext } = useCourseStore();
+  const [muted, setMuted] = useState<boolean>(soundEffects.isMuted());
+
+  useEffect(() => {
+    return soundEffects.subscribe((newMuted) => setMuted(newMuted));
+  }, []);
+
+  const handleToggleSound = () => {
+    soundEffects.toggleMute();
+    if (muted) {
+      // Unmuting, play a gentle preview chime
+      setTimeout(() => soundEffects.playSuccessChime(), 50);
+    }
+  };
 
   const isReviewActive =
     activeTab === 'reviews' ||
@@ -20,9 +35,9 @@ export const CourseBoxTopBar: React.FC = () => {
     (activeTab === 'player' && !reviewContext?.isReviewSession);
 
   return (
-    <header dir="ltr" className="fixed top-0 left-0 right-0 h-16 px-6 md:px-10 flex items-center justify-between z-50 topbar-transparent select-none bg-white/40 backdrop-blur-md border-b border-white/60">
-      {/* Left: Brand Logo */}
-      <div className="flex items-center">
+    <header dir="ltr" className="fixed top-0 left-0 right-0 h-16 px-4 md:px-8 flex items-center justify-between z-50 topbar-transparent select-none bg-white/40 backdrop-blur-md border-b border-white/60">
+      {/* Left: Brand Logo & Epigraph */}
+      <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={() => setActiveTab('courses')}
@@ -31,6 +46,12 @@ export const CourseBoxTopBar: React.FC = () => {
         >
           <AlqualiteLogo size="md" showText={true} showSubtitle={true} />
         </button>
+
+        {/* Poetic Persian Epigraph (Hidden on mobile) */}
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-linear-to-r from-amber-500/10 via-amber-400/5 to-transparent border border-amber-300/30 text-amber-900/80 text-[11px] font-medium tracking-tight">
+          <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
+          <span className="font-serif">«توانا بود هر که دانا بود»</span>
+        </div>
       </div>
 
       {/* Center: 2-Button Centered Capsule Switcher */}
@@ -66,8 +87,22 @@ export const CourseBoxTopBar: React.FC = () => {
         </button>
       </div>
 
-      {/* Right: User Profile Menu */}
-      <div dir="rtl" className="flex items-center gap-3">
+      {/* Right: Audio Toggle & User Profile Menu */}
+      <div dir="rtl" className="flex items-center gap-2 md:gap-3">
+        {/* Ambient Acoustic Toggle */}
+        <button
+          type="button"
+          onClick={handleToggleSound}
+          className={`p-2 rounded-xl transition-all cursor-pointer border ${
+            muted
+              ? 'bg-slate-100/80 text-slate-400 border-slate-200 hover:text-slate-600'
+              : 'bg-amber-50/90 text-amber-700 border-amber-200/80 hover:bg-amber-100 shadow-2xs'
+          }`}
+          title={muted ? 'روشن کردن بازخورد صوتی' : 'بی‌صدا کردن بازخورد صوتی'}
+        >
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+        </button>
+
         <UserProfileMenu />
       </div>
     </header>

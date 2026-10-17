@@ -4,16 +4,16 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { api } from '../../services/api';
 
 const SUBJECT_FILTERS = [
-  { id: 'all', label: 'همه محتواها' },
-  { id: 'farsi', label: 'فارسی و ادبیات', keywords: ['فارسی', 'لغت', 'اعلام', 'واژه'] },
-  { id: 'grade10', label: 'پایه دهم', keywords: ['دهم', 'fa10', 'ar10', 'arabic10', '10'] },
-  { id: 'grade11', label: 'پایه یازدهم', keywords: ['یازدهم', 'fa11', 'ar11', 'arabic11', '11'] },
-  { id: 'grade12', label: 'پایه دوازدهم', keywords: ['دوازدهم', 'fa12', 'ar12', 'arabic12', 'di12', 'he12', '12'] },
-  { id: 'arabic', label: 'عربی', keywords: ['عربی', 'arabic', 'ar10', 'ar11', 'ar12'] },
-  { id: 'dini', label: 'دین و زندگی', keywords: ['دین', 'دینی', 'قرآن', 'آیات', 'روایات', 'di12'] },
-  { id: 'health', label: 'سلامت و بهداشت', keywords: ['سلامت', 'بهداشت', 'he12'] },
-  { id: 'biology', label: 'زیست‌شناسی', keywords: ['زیست', 'bio', 'نورولوژی', 'عصب', 'قید', 'bi_ghayd'] },
-  { id: 'chemistry', label: 'شیمی', keywords: ['شیمی', 'chem', 'عنصر', 'جدول تناوبی', 'ch_pt'] },
+  { id: 'all', label: 'همه دوره‌ها' },
+  { id: 'farsi', label: 'ادبیات فارسی', keywords: ['فارسی', 'املا', 'آرایه', 'لغت', 'اعلام', 'واژه', 'fa_emla', 'fa_araye', 'fa10', 'fa11', 'fa12'] },
+  { id: 'arabic', label: 'عربی کنکور و نهایی', keywords: ['عربی', 'arabic', 'ترجمه', 'قواعد', 'ar_rules', 'ar10', 'ar11', 'ar12'] },
+  { id: 'chemistry', label: 'شیمی تخصصی', keywords: ['شیمی', 'chem', 'کاتالیزور', 'شعله', 'عاملی', 'جدول', 'عنصر', 'ch_catalysts', 'ch_groups', 'ch_pt'] },
+  { id: 'physics', label: 'فیزیک و یکاها', keywords: ['فیزیک', 'physics', 'یکا', 'si', 'دیمانسیون', 'ph_units'] },
+  { id: 'biology', label: 'زیست‌شناسی', keywords: ['زیست', 'bio', 'قید', 'اصطلاح', 'نورولوژی', 'bi_ghayd'] },
+  { id: 'general', label: 'دینی و سلامت', keywords: ['دین', 'دینی', 'قرآن', 'آیات', 'سلامت', 'بهداشت', 'di12', 'he12'] },
+  { id: 'grade10', label: 'پایه دهم', keywords: ['دهم', 'fa10', 'ar10', '10'] },
+  { id: 'grade11', label: 'پایه یازدهم', keywords: ['یازدهم', 'fa11', 'ar11', '11'] },
+  { id: 'grade12', label: 'پایه دوازدهم', keywords: ['دوازدهم', 'fa12', 'ar12', 'di12', 'he12', '12'] },
 ];
 
 export const CourseLibrary: React.FC = () => {
@@ -209,7 +209,47 @@ export const CourseLibrary: React.FC = () => {
                       >
                         {isBuiltin ? 'دوره رسمی' : 'سفارشی'}
                       </span>
-                      {c.title.includes('اعلام') ? (
+                      {c.topic_code === 'fa_emla' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                          املای دام‌دار و واژه‌گزینی
+                        </span>
+                      ) : c.topic_code === 'fa_araye' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-pink-400/20 text-pink-300 border border-pink-400/30">
+                          کارگاه آرایه‌های ادبی
+                        </span>
+                      ) : c.topic_code === 'ar_rules' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-indigo-400/20 text-indigo-300 border border-indigo-400/30">
+                          فنون ترجمه و تعریب
+                        </span>
+                      ) : c.topic_code === 'ch_catalysts' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-violet-400/20 text-violet-300 border border-violet-400/30">
+                          کاتالیزورها و رنگ‌های شیمی
+                        </span>
+                      ) : c.topic_code === 'ch_groups' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-400/20 text-purple-300 border border-purple-400/30">
+                          گروه‌های عاملی شیمی آلی
+                        </span>
+                      ) : c.topic_code === 'ph_units' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-300 border border-cyan-400/30">
+                          یکاهای SI و دیمانسیون
+                        </span>
+                      ) : c.topic_code === 'ch_pt' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-teal-400/20 text-teal-300 border border-teal-400/30">
+                          جدول تناوبی عناصر
+                        </span>
+                      ) : c.topic_code === 'bi_ghayd' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                          قیود سرنوشت‌ساز زیست
+                        </span>
+                      ) : c.topic_code === 'di12_ayat' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                          پیام آیات و روایات
+                        </span>
+                      ) : c.topic_code === 'he12' ? (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-400/20 text-rose-300 border border-rose-400/30">
+                          سلامت و بهداشت
+                        </span>
+                      ) : c.title.includes('اعلام') ? (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30">
                           ماتریس ۴ بعدی اعلام
                         </span>

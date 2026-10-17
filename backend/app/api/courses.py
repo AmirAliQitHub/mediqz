@@ -37,7 +37,19 @@ ALIAS_MAP = {
     "biology_ghayd": "biology_ghayd",
     "bi_ghayd": "biology_ghayd",
     "chemistry_elements": "chemistry_elements",
-    "ch_pt": "chemistry_elements"
+    "ch_pt": "chemistry_elements",
+    "persian_emla": "persian_emla",
+    "fa_emla": "persian_emla",
+    "persian_araye": "persian_araye",
+    "fa_araye": "persian_araye",
+    "chemistry_catalysts_colors": "chemistry_catalysts_colors",
+    "ch_catalysts": "chemistry_catalysts_colors",
+    "physics_units_si": "physics_units_si",
+    "ph_units": "physics_units_si",
+    "arabic_translation_rules": "arabic_translation_rules",
+    "ar_rules": "arabic_translation_rules",
+    "chemistry_functional_groups": "chemistry_functional_groups",
+    "ch_groups": "chemistry_functional_groups"
 }
 
 def resolve_course_payload(raw_course_id: str, user_id: Optional[int] = None) -> Dict[str, Any]:

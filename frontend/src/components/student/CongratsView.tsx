@@ -4,6 +4,7 @@ import { useCourseStore } from '../../store/useCourseStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { api } from '../../services/api';
 import { EU } from '../../types';
+import { soundEffects } from '../../services/soundEffects';
 
 export const CongratsView: React.FC = () => {
   const {
@@ -35,9 +36,10 @@ export const CongratsView: React.FC = () => {
   const totalInteractive = interactiveEUs.length;
   const scorePercentage = totalInteractive > 0 ? Math.round((correctCount / totalInteractive) * 100) : 100;
 
-  // Trigger celebration confetti
+  // Trigger celebration confetti and triumphant fanfare
   useEffect(() => {
     try {
+      soundEffects.playFanfare();
       confetti({
         particleCount: 80,
         spread: 70,
