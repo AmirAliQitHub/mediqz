@@ -16,11 +16,11 @@ cleanup() {
 
 trap cleanup INT TERM EXIT
 
-echo "[Alqualite CourseBox] Starting FastAPI backend on port 8000..."
+echo "[Alqualite CourseBox] Starting FastAPI backend on port 8008..."
 cd "$BACKEND_DIR"
 python3 run.py &
 BACKEND_PID=$!
 
-echo "[Alqualite CourseBox] Starting Vite frontend dev server on port 3000..."
+echo "[Alqualite CourseBox] Starting Vite frontend dev server on port 5173..."
 cd "$FRONTEND_DIR"
 npm run dev
