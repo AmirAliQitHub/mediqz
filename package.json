@@ -1,0 +1,8 @@
+{
+  "name": "mediqz",
+  "version": "1.0.0",
+  "description": "Alqualite CourseBox & Mediqz Telegram Bot",
+  "scripts": {
+    "start": "python3 -m pip install -r backend/requirements.txt && PYTHONPATH=backend python3 -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-3000}"
+  }
+}
