@@ -1,13 +1,12 @@
-# Task Checklist: Vercel Full-Stack Cloud Deployment & Telegram WebApp Integration (v2.7.0-vercel)
+# Task Checklist: Mobile Ergonomics & TopBar HUD Overhaul (v2.8.0-mobile-hud)
 
-## Phase 1: Vercel Cloud Environment & Secret Configuration (MCP-Direct)
-- [x] Step 1.1: Inject Production Environment Variables via Vercel MCP
-- [x] Step 1.2: Serverless Webhook Optimization & Cold-Start Resilience
+## Phase 1: Mobile Navigation & Ergonomics Architecture
+- [x] Step 1.1: Mobile Floating Bottom Navigation Dock (`MobileBottomNav.tsx`)
+- [x] Step 1.2: Mobile TopBar HUD Transformation (`CourseBoxTopBar.tsx`, `UserProfileMenu.tsx`)
 
-## Phase 2: Webhook Activation & Cloud Deployment Promotion
-- [x] Step 2.1: Commit, Push & Trigger Vercel Production Redeployment
-- [x] Step 2.2: Register Telegram Webhook & Menu Button via API
+## Phase 2: Hero Banner De-slopping & Mobile Content Elevation
+- [x] Step 2.1: CourseLibrary Mobile Streamlining (`CourseLibrary.tsx`)
 
-## Phase 3: Comprehensive Multi-Scenario E2E Verification
-- [x] Step 3.1: Automated Cloud & Telegram E2E Verification Script
-- [x] Step 3.2: Live Telegram Interactive Test & Architecture Report
+## Phase 3: Verification, Vercel Deployment & E2E Validation
+- [x] Step 3.1: Frontend Build & Unit Test Verification
+- [ ] Step 3.2: Production Push, Live Vercel Audit & Council Certification

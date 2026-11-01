@@ -95,18 +95,34 @@ export const CourseLibrary: React.FC = () => {
   }, [courses, activeSubject, searchQuery]);
 
   return (
-    <main className="w-full max-w-5xl mx-auto px-3 sm:px-6 pt-[calc(4.25rem+var(--sat,0px))] sm:pt-20 md:pt-24 pb-[calc(8rem+var(--sab,0px))] flex flex-col gap-4 sm:gap-5 text-right animate-fadeIn select-none">
-      {/* Header Banner */}
-      <div className="liquid-glass-card p-4 sm:p-7 md:p-8 flex justify-between items-center flex-wrap gap-4 shadow-liquid border border-white/90">
+    <main className="w-full max-w-5xl mx-auto px-3 sm:px-6 pt-[calc(3.75rem+var(--sat,0px))] sm:pt-20 md:pt-24 pb-[calc(8rem+var(--sab,0px))] flex flex-col gap-3.5 sm:gap-5 text-right animate-fadeIn select-none">
+      {/* Mobile Streamlined Greeting Bar (<48px) */}
+      <div className="sm:hidden liquid-glass-card px-3.5 py-2 flex items-center justify-between shadow-xs border border-white/90">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-black text-blue-950 truncate max-w-[130px]">
+            سلام {user?.display_name || 'دانش‌آموز'} 👋
+          </span>
+          <span className="text-[10px] font-medium text-slate-500">
+            آماده مطالعه امروز
+          </span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-full bg-blue-50 border border-blue-200/70 text-blue-900 text-[10px] font-black">
+          <span>{courses.length}</span>
+          <span className="text-slate-400 font-normal">دوره</span>
+        </div>
+      </div>
+
+      {/* Desktop Rich Header Banner (hidden on mobile) */}
+      <div className="hidden sm:flex liquid-glass-card p-7 md:p-8 justify-between items-center flex-wrap gap-4 shadow-liquid border border-white/90">
         <div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/90 text-blue-950 text-xs font-black mb-2 border border-blue-200/80">
             <Sparkles className="w-3 h-3 text-blue-600" />
             <span>مدیاز • سامانه یادگیری هوشمند</span>
           </div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-blue-950">
+          <h1 className="text-2xl md:text-3xl font-black text-blue-950">
             کتابخانه دوره‌های آموزشی اینتراکتیو
           </h1>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium max-w-xl leading-relaxed">
+          <p className="text-sm text-slate-500 mt-1 font-medium max-w-xl leading-relaxed">
             واژه‌نامه‌های هوشمند تفکیک فصل، اعلام و تاریخ ادبیات ۴ بعدی، و کارگاه‌های تسلط تعاملی شناختی
           </p>
         </div>
@@ -137,7 +153,7 @@ export const CourseLibrary: React.FC = () => {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-xl bg-white/90 hover:bg-white border border-blue-900/15 text-blue-900 text-xs font-black shadow-xs cursor-pointer transition-all hover:border-blue-400 active:scale-95 flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-xl bg-white/90 hover:bg-white border border-blue-900/15 text-blue-900 text-xs font-black shadow-xs cursor-pointer transition-all hover:border-blue-400 active:scale-95 flex items-center gap-1.5"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>ایمپورت دوره</span>

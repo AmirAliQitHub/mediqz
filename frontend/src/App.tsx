@@ -1,6 +1,7 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { useAuthStore } from './store/useAuthStore';
 import { CourseBoxTopBar } from './components/layout/CourseBoxTopBar';
+import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { OnboardingModal } from './components/auth/OnboardingModal';
 import { LoginPad } from './components/auth/LoginPad';
 import { CourseLibrary } from './components/student/CourseLibrary';
@@ -106,12 +107,15 @@ export const App: React.FC = () => {
       {/* Top Navigation Bar */}
       {activeTab !== 'player' && <CourseBoxTopBar />}
 
-      {/* Dynamic View Mount */}
-      <div className="relative z-10 w-full flex-1 flex flex-col">
+      {/* Dynamic View Mount with Mobile Bottom Dock Clearance */}
+      <div className="relative z-10 w-full flex-1 flex flex-col pb-24 sm:pb-8">
         <Suspense fallback={<ViewLoader />}>
           {renderActiveView()}
         </Suspense>
       </div>
+
+      {/* Mobile Floating Bottom Dock (Thumb Zone) */}
+      {activeTab !== 'player' && <MobileBottomNav />}
 
       {/* Onboarding Modal for authenticated users who haven't selected grade */}
       <OnboardingModal />
