@@ -19,7 +19,10 @@ if env_file.exists():
 ASSETS_DIR = BASE_DIR / "assets"
 COURSES_DIR = ASSETS_DIR / "courses"
 
-DATA_DIR = Path(os.getenv("DATA_DIR", str(ASSETS_DIR)))
+if os.getenv("VERCEL"):
+    DATA_DIR = Path("/tmp")
+else:
+    DATA_DIR = Path(os.getenv("DATA_DIR", str(ASSETS_DIR)))
 DB_USER_PATH = DATA_DIR / "userdata.db"
 DB_EXAMS_PATH = DATA_DIR / "exams.db"
 
