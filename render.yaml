@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: alqualite-coursebox
+    env: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        value: "8882238851:AAFdbVIurZXP4nRwZ8EmvtmGwYUIFeOxc50"
+      - key: TELEGRAM_BOT_USERNAME
+        value: "MediqzBot"
+      - key: TELEGRAM_BOT_NAME
+        value: "Mediaz"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATA_DIR
+        value: "/app/backend/assets"
+      - key: WEB_APP_URL
+        sync: false

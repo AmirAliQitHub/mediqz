@@ -21,6 +21,6 @@ cd "$BACKEND_DIR"
 python3 run.py &
 BACKEND_PID=$!
 
-echo "[Alqualite CourseBox] Starting Vite frontend dev server on port 5173..."
+echo "[Mediaz CourseBox] Starting Vite frontend dev server on port 3000..."
 cd "$FRONTEND_DIR"
 npm run dev

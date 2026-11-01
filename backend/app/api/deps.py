@@ -41,7 +41,7 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> Dict:
                 pass
 
         user = conn.execute(
-            "SELECT id, username, display_name, avatar_url, access_level FROM users WHERE id = ?",
+            "SELECT id, username, display_name, avatar_url, access_level, grade, is_onboarded, is_superuser, telegram_user_id, has_password FROM users WHERE id = ?",
             (session["user_id"],)
         ).fetchone()
 
@@ -62,3 +62,13 @@ async def get_optional_user(authorization: Optional[str] = Header(None)) -> Opti
         return await get_current_user(authorization)
     except HTTPException:
         return None
+
+async def require_superuser(authorization: Optional[str] = Header(None)) -> Dict:
+    user = await get_current_user(authorization)
+    if not user.get("is_superuser") and user.get("access_level") != "SUPERUSER":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="دسترسی به این بخش نیازمند سطح مدیر ارشد (Superuser) است."
+        )
+    return user
+

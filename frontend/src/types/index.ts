@@ -5,7 +5,23 @@ export interface User {
   username: string;
   display_name: string;
   avatar_url: string;
-  access_level: Role;
+  access_level: Role | string;
+  grade?: string | null;
+  is_onboarded?: boolean;
+  is_superuser?: boolean;
+  telegram_user_id?: number | null;
+  has_password?: boolean;
+}
+
+export interface AdminUser {
+  id: number;
+  username: string;
+  display_name: string;
+  grade?: string | null;
+  is_onboarded: boolean;
+  is_superuser: boolean;
+  telegram_id?: number | null;
+  created_at: string;
 }
 
 export type EUType =
@@ -67,6 +83,7 @@ export interface CourseSummary {
   slides_count: number;
   type: 'builtin' | 'custom';
   is_review?: boolean;
+  is_development?: boolean;
 }
 
 export interface PartReviewRecord {

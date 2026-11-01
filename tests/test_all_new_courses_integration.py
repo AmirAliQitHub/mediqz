@@ -10,10 +10,12 @@ from app.api.courses import resolve_course_payload, list_courses
 
 class TestAllNewCoursesIntegration(unittest.TestCase):
     def test_new_courses_in_course_catalog(self):
-        courses = list_courses(user=None)
+        courses = list_courses(user=None, include_dev=True)
         course_ids = {c.id for c in courses}
         expected_ids = {
-            "builtin-persian_emla",
+            "builtin-persian10_emla",
+            "builtin-persian11_emla",
+            "builtin-persian12_emla",
             "builtin-persian_araye",
             "builtin-chemistry_catalysts_colors",
             "builtin-physics_units_si",
@@ -25,7 +27,9 @@ class TestAllNewCoursesIntegration(unittest.TestCase):
 
     def test_new_courses_alias_resolution(self):
         alias_checks = [
-            ("fa_emla", "persian_emla"),
+            ("fa10_emla", "persian10_emla"),
+            ("fa11_emla", "persian11_emla"),
+            ("fa12_emla", "persian12_emla"),
             ("fa_araye", "persian_araye"),
             ("ch_catalysts", "chemistry_catalysts_colors"),
             ("ph_units", "physics_units_si"),

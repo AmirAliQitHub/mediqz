@@ -29,7 +29,7 @@ export const FillInTheBlank: React.FC<Props> = ({ eu }) => {
  const [showDrawer, setShowDrawer] = useState(false);
  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
  const [matchedKeyword, setMatchedKeyword] = useState<string | null>(null);
- const { recordEUResult, nextSlide } = useCourseStore();
+ const { recordEUResult, nextSlide, showContextSentence } = useCourseStore();
 
  const p = eu.payload || {};
 
@@ -113,32 +113,62 @@ export const FillInTheBlank: React.FC<Props> = ({ eu }) => {
  };
 
  return (
- <div className="w-full max-w-xl mx-auto p-8 rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/90 shadow-liquid eu-surface text-center flex flex-col gap-6 animate-fadeIn">
+ <div className="w-full max-w-xl mx-auto p-4 sm:p-7 rounded-3xl bg-white/85 backdrop-blur-2xl border border-white/90 shadow-liquid eu-surface text-center flex flex-col gap-3.5 sm:gap-5 animate-fadeIn mb-28 sm:mb-16">
   <span className="text-xs font-black text-blue-900 bg-blue-100 px-3 py-1 rounded-full self-center border border-blue-200">
   {eu.topic_tag || 'لغت‌نامه هوشمند'}
   </span>
 
-  {/* Word Box */}
-  <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-50/70 to-indigo-50/70 border border-blue-200/80 shadow-2xs">
-  <small className="block text-xs text-slate-400 font-bold mb-1">واژه مورد نظر:</small>
-  <h2 className="text-4xl font-black text-blue-950">{p.word}</h2>
-  {p.sentence && (
-   <p className="text-sm text-slate-600 italic mt-3 leading-relaxed">
-   «{p.sentence}»
-   </p>
-  )}
+  {/* Word / Question Box */}
+  <div className="p-4 sm:p-6 rounded-2xl bg-gradient-to-br from-blue-50/70 to-indigo-50/70 border border-blue-200/80 shadow-2xs">
+   {showContextSentence ? (
+    <>
+     {p.word && !p.sentence?.includes('(') && (
+      <small className="block text-xs text-slate-400 font-bold mb-1">واژه مورد نظر:</small>
+     )}
+     {p.word && !p.sentence?.includes('(') && (
+      <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-blue-950 mb-2">{p.word}</h2>
+     )}
+     {p.sentence && (
+      <p className="text-base md:text-lg text-slate-800 font-bold leading-relaxed">
+       «{p.sentence}»
+      </p>
+     )}
+    </>
+   ) : (
+    <>
+     <small className="block text-xs text-amber-700 font-bold mb-1">🎯 حالت تمرکز بر واژه (بدون بستر جمله):</small>
+     {p.pair ? (
+      <h2 className="text-2xl md:text-3xl font-black text-blue-950 my-2 tracking-wide">
+       [ {p.pair} ]
+      </h2>
+     ) : (
+      <h2 className="text-3xl md:text-4xl font-black text-blue-950 mb-2">{p.word}</h2>
+     )}
+     {p.meaning && (
+      <p className="text-xs md:text-sm text-slate-600 font-medium mt-1">
+       <strong>مفهوم:</strong> {p.meaning}
+      </p>
+     )}
+    </>
+   )}
   </div>
 
   {/* Input Section */}
   <div className="flex flex-col gap-2 text-right">
   <label className="text-xs font-black text-blue-900">
-   {p.prompt || 'معنی یا کلیدواژه‌های اصلی این واژه را بنویسید:'}
+   {(!showContextSentence && p.isolated_prompt) ? p.isolated_prompt : (p.prompt || 'معنی یا شکل صحیح این واژه را بنویسید:')}
   </label>
   <div className="flex gap-2">
    <input
    type="text"
+   inputMode="text"
    value={userInput}
    onChange={(e) => setUserInput(e.target.value)}
+   onFocus={(e) => {
+    setTimeout(() => {
+     e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 150);
+   }}
    onKeyDown={(e) => {
     if (e.key === 'Enter') {
     if (showDrawer) {
@@ -150,7 +180,7 @@ export const FillInTheBlank: React.FC<Props> = ({ eu }) => {
    }}
    placeholder="معنی یا کلیدواژه را اینجا بنویسید..."
    autoFocus
-   className="flex-1 px-4 py-3 rounded-xl border border-blue-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400"
+   className="flex-1 px-4 py-3 rounded-xl border border-blue-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-xs"
    />
    <button
    onClick={handleEvaluate}
@@ -190,6 +220,12 @@ export const FillInTheBlank: React.FC<Props> = ({ eu }) => {
    <strong className="block text-xs font-black text-blue-950 mb-1">معنی کامل کتاب درسی:</strong>
    <p className="text-sm text-slate-800 leading-relaxed font-medium">{p.full_meaning}</p>
    </div>
+
+   {p.trap_note && (
+   <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-200/80 text-xs text-amber-900 font-medium leading-relaxed">
+    💡 {p.trap_note}
+   </div>
+   )}
 
    {p.keywords && p.keywords.length > 0 && (
    <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">

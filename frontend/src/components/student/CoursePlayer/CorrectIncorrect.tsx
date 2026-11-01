@@ -40,21 +40,21 @@ export const CorrectIncorrect: React.FC<Props> = ({ eu }) => {
  const isUserCorrect = selectedAnswer !== null && selectedAnswer === p.is_correct;
 
  return (
- <div className="w-full max-w-xl mx-auto p-8 rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/90 shadow-liquid eu-surface text-center flex flex-col gap-6 animate-fadeIn">
+ <div className="w-full max-w-xl mx-auto p-4 sm:p-8 rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/90 shadow-liquid eu-surface text-center flex flex-col gap-4 sm:gap-6 animate-fadeIn mb-24 sm:mb-16">
   <span className="text-xs font-black text-blue-900 bg-blue-100 px-3 py-1 rounded-full self-center border border-blue-200">
   {eu.topic_tag || 'صحیح / غلط'}
   </span>
 
-  <div className="p-6 rounded-2xl bg-slate-50/70 border border-slate-200/80 shadow-2xs">
-  <h3 className="text-lg md:text-xl font-black text-blue-950 leading-relaxed">
+  <div className="p-4 sm:p-6 rounded-2xl bg-slate-50/70 border border-slate-200/80 shadow-2xs">
+  <h3 className="text-base sm:text-lg md:text-xl font-black text-blue-950 leading-relaxed">
    «{p.statement}»
   </h3>
   </div>
 
-  <div className="flex justify-center gap-4">
+  <div className="flex justify-center gap-3 sm:gap-4 w-full">
   <button
    onClick={() => handleAnswer(true)}
-   className={`px-8 py-3 rounded-2xl text-sm font-black transition-all cursor-pointer shadow-xs ${
+   className={`flex-1 sm:flex-initial px-6 sm:px-8 py-3 rounded-2xl text-sm font-black transition-all cursor-pointer shadow-xs ${
    selectedAnswer === true
     ? p.is_correct
     ? 'bg-emerald-600 text-white shadow-emerald-200'
@@ -67,7 +67,7 @@ export const CorrectIncorrect: React.FC<Props> = ({ eu }) => {
 
   <button
    onClick={() => handleAnswer(false)}
-   className={`px-8 py-3 rounded-2xl text-sm font-black transition-all cursor-pointer shadow-xs ${
+   className={`flex-1 sm:flex-initial px-6 sm:px-8 py-3 rounded-2xl text-sm font-black transition-all cursor-pointer shadow-xs ${
    selectedAnswer === false
     ? !p.is_correct
     ? 'bg-emerald-600 text-white shadow-emerald-200'

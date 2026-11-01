@@ -1,0 +1,48 @@
+# Git & System
+.git/
+.gitignore
+.DS_Store
+*.swp
+*.swo
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment files & Secrets
+.env
+.env.*
+*.key
+*.token
+
+# Databases & Ephemeral SQLite WAL artifacts
+*.db-wal
+*.db-shm
+*.db-journal
+
+# Logs & Temporary files
+*.log
+logs/
+tmp/
+temp/
+.pytest_cache/
+tests/
+scripts/
+docs/
+.agents/
+AGENTS.md

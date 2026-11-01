@@ -10,12 +10,25 @@ class UserLoginReq(BaseModel):
     username: str
     password: str
 
+class TelegramAuthReq(BaseModel):
+    id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    username: Optional[str] = None
+    language_code: Optional[str] = None
+    auth_date: Optional[int] = None
+    hash: Optional[str] = None
+
 class UserResponse(BaseModel):
     id: int
     username: str
     display_name: str
     avatar_url: str = ""
     access_level: str = "S2"
+    grade: Optional[str] = ""
+    is_onboarded: Optional[bool] = False
+    is_superuser: Optional[bool] = False
+    telegram_user_id: Optional[int] = None
 
 class CourseCompleteReq(BaseModel):
     course_id: str
@@ -39,6 +52,7 @@ class CourseSummary(BaseModel):
     slides_count: int = 0
     type: str = "builtin"
     is_review: bool = False
+    is_development: bool = False
 
 class PartReviewRecord(BaseModel):
     id: int

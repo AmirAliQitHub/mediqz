@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  coursebox:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: alqualite_coursebox
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8008}:${PORT:-8008}"
+    environment:
+      - PORT=8008
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-8882238851:AAFdbVIurZXP4nRwZ8EmvtmGwYUIFeOxc50}
+      - TELEGRAM_BOT_USERNAME=${TELEGRAM_BOT_USERNAME:-MediqzBot}
+      - TELEGRAM_BOT_NAME=${TELEGRAM_BOT_NAME:-Mediaz}
+      - WEB_APP_URL=${WEB_APP_URL:-}
+      - SECRET_KEY=${SECRET_KEY:-alqualite_coursebox_secret_jwt_2026}
+      - DATA_DIR=/data
+    volumes:
+      - coursebox-data:/data
+
+volumes:
+  coursebox-data:
+    driver: local

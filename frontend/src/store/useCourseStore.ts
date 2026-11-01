@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { CourseSummary, Course, Part, EU } from '../types';
 import { api } from '../services/api';
+import { useRoutineStore } from './useRoutineStore';
 
 export interface EUResult {
   eu_id: string;
@@ -43,9 +44,14 @@ interface CourseState {
   autoReviewQueue: AutoReviewItem[];
   autoReviewIndex: number;
   autoReviewActive: boolean;
+  showContextSentence: boolean;
 
-  fetchCourses: () => Promise<void>;
+  fetchCourses: (includeDev?: boolean) => Promise<void>;
   selectCourse: (courseId: string) => Promise<void>;
+  fetchCourseById: (courseId: string) => Promise<Course | null>;
+  setSelectedCourse: (course: Course | null) => void;
+  setShowContextSentence: (show: boolean) => void;
+  toggleContextSentence: () => void;
   startPartPlayer: (partId: string) => void;
   startReviewSession: (part: Part, course: Course, context: ReviewSessionContext) => void;
   startAutomaticReviewSession: (items: AutoReviewItem[]) => void;
@@ -70,11 +76,29 @@ export const useCourseStore = create<CourseState>((set, get) => ({
   autoReviewQueue: [],
   autoReviewIndex: 0,
   autoReviewActive: false,
+  showContextSentence: typeof window !== 'undefined' ? localStorage.getItem('alqualite_show_context_sentence') !== 'false' : true,
 
-  fetchCourses: async () => {
+  setShowContextSentence: (show: boolean) => {
+    try {
+      localStorage.setItem('alqualite_show_context_sentence', String(show));
+    } catch {}
+    set({ showContextSentence: show });
+  },
+
+  toggleContextSentence: () => {
+    const current = get().showContextSentence;
+    const nextVal = !current;
+    try {
+      localStorage.setItem('alqualite_show_context_sentence', String(nextVal));
+    } catch {}
+    set({ showContextSentence: nextVal });
+  },
+
+  fetchCourses: async (includeDev?: boolean) => {
     set({ isLoading: true });
     try {
-      const res = await api.get<CourseSummary[]>('/courses');
+      const url = includeDev ? '/courses?include_dev=true' : '/courses';
+      const res = await api.get<CourseSummary[]>(url);
       set({ courses: res, isLoading: false });
     } catch {
       set({ isLoading: false });
@@ -90,6 +114,22 @@ export const useCourseStore = create<CourseState>((set, get) => ({
       set({ isLoading: false });
       throw e;
     }
+  },
+
+  fetchCourseById: async (courseId: string) => {
+    set({ isLoading: true });
+    try {
+      const course = await api.get<Course>(`/courses/${encodeURIComponent(courseId)}`);
+      set({ selectedCourse: course, isLoading: false });
+      return course;
+    } catch {
+      set({ isLoading: false });
+      return null;
+    }
+  },
+
+  setSelectedCourse: (course: Course | null) => {
+    set({ selectedCourse: course });
   },
 
   startPartPlayer: (partId: string) => {
@@ -190,7 +230,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
   },
 
   recordEUResult: (euId, result) => {
-    const { euResults } = get();
+    const { euResults, selectedCourse, activePart } = get();
     const existing = euResults[euId] || {
       eu_id: euId,
       order: 1,
@@ -206,6 +246,41 @@ export const useCourseStore = create<CourseState>((set, get) => ({
         [euId]: { ...existing, ...result },
       },
     });
+
+    // If answer is wrong, automatically record into RoutineHub's mistakes hunter
+    if (result.status === 'wrong') {
+      try {
+        const currentEu = activePart?.eus.find((e) => e.id === euId);
+        const questionText =
+          currentEu?.payload?.word ||
+          currentEu?.payload?.sentence ||
+          currentEu?.payload?.statement ||
+          currentEu?.payload?.pair ||
+          currentEu?.payload?.prompt ||
+          existing.title ||
+          'پرسش';
+        const correctText =
+          result.correct_answer ||
+          currentEu?.payload?.full_meaning ||
+          currentEu?.payload?.meaning ||
+          (Array.isArray(currentEu?.payload?.keywords) ? currentEu.payload.keywords[0] : '') ||
+          '';
+
+        useRoutineStore.getState().recordMistake({
+          course_id: selectedCourse?.course_id || 'general',
+          course_title: selectedCourse?.title || 'دوره آموزشی',
+          part_id: activePart?.part_id || 'general_part',
+          part_title: activePart?.title || 'پارت آموزشی',
+          unit_id: euId,
+          question: String(questionText),
+          user_answer: result.user_answer ? String(result.user_answer) : 'پاسخ نادرست',
+          correct_answer: String(correctText),
+          raw_eu: currentEu,
+        });
+      } catch (err) {
+        console.warn('Failed to record mistake in RoutineStore:', err);
+      }
+    }
   },
 
   markCurrentPartDone: () => {
@@ -222,3 +297,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
     });
   },
 }));
+
+if (typeof window !== 'undefined') {
+  (window as any).courseStore = useCourseStore;
+}

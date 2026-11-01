@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import confetti from 'canvas-confetti';
 import { useCourseStore } from '../../store/useCourseStore';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useRoutineStore } from '../../store/useRoutineStore';
 import { api } from '../../services/api';
 import { EU } from '../../types';
 import { soundEffects } from '../../services/soundEffects';
@@ -20,6 +21,7 @@ export const CongratsView: React.FC = () => {
     clearAutomaticReview,
   } = useCourseStore();
   const { setActiveTab } = useAuthStore();
+  const { activeRoutineQueue, activeQueueIndex, onPartFinishedInRoutine } = useRoutineStore();
 
   const [isSaved, setIsSaved] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'wrong' | 'correct'>('all');
@@ -144,12 +146,33 @@ export const CongratsView: React.FC = () => {
 
         {/* Action Controls */}
         <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-          <button
-            onClick={() => setActiveTab('course-parts')}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-black cursor-pointer shadow-md shadow-blue-500/25 transition-all"
-          >
-            ادامه سرفصل‌ها
-          </button>
+          {activeRoutineQueue && activeQueueIndex + 1 < activeRoutineQueue.length ? (
+            <button
+              onClick={() => {
+                onPartFinishedInRoutine();
+              }}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-black cursor-pointer shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-2 animate-pulse"
+            >
+              <span>▶ اجرای پارت بعدی روتین امروز ({activeQueueIndex + 2} از {activeRoutineQueue.length})</span>
+            </button>
+          ) : activeRoutineQueue ? (
+            <button
+              onClick={() => {
+                onPartFinishedInRoutine();
+                setActiveTab('routines');
+              }}
+              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 hover:from-emerald-700 hover:to-teal-800 text-white text-xs font-black cursor-pointer shadow-lg shadow-emerald-500/25 transition-all flex items-center gap-2"
+            >
+              <span>🎉 تبریک! پایان روتین امروز (بازگشت به RoutineHub)</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setActiveTab('course-parts')}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-xs font-black cursor-pointer shadow-md shadow-blue-500/25 transition-all"
+            >
+              ادامه سرفصل‌ها
+            </button>
+          )}
 
           {wrongCount > 0 && (
             <button
@@ -161,10 +184,10 @@ export const CongratsView: React.FC = () => {
           )}
 
           <button
-            onClick={() => setActiveTab('reviews')}
+            onClick={() => setActiveTab('routines')}
             className="px-5 py-2.5 rounded-xl bg-white/80 hover:bg-white text-slate-700 border border-slate-200 text-xs font-black cursor-pointer shadow-2xs transition-all"
           >
-            رفتن به مرکز مرور
+            رفتن به RoutineHub
           </button>
         </div>
       </div>

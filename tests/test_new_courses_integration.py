@@ -7,7 +7,7 @@ from app.api.courses import list_courses, resolve_course_payload
 
 class TestNewCoursesIntegration(unittest.TestCase):
     def test_list_all_new_courses(self):
-        courses = list_courses()
+        courses = list_courses(user=None, include_dev=True)
         course_ids = [c.id for c in courses]
         self.assertIn("builtin-dini12_ayat", course_ids)
         self.assertIn("builtin-health12", course_ids)

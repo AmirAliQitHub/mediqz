@@ -1,15 +1,33 @@
 const API_BASE = '/api';
 
+let memoryStore: Record<string, string> = {};
+
 export function getAuthToken(): string | null {
-  return localStorage.getItem('alqualite_coursebox_token');
+  try {
+    return typeof window !== 'undefined' ? localStorage.getItem('alqualite_coursebox_token') : null;
+  } catch {
+    return memoryStore['alqualite_coursebox_token'] || null;
+  }
 }
 
 export function setAuthToken(token: string): void {
-  localStorage.setItem('alqualite_coursebox_token', token);
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('alqualite_coursebox_token', token);
+    }
+  } catch {
+    memoryStore['alqualite_coursebox_token'] = token;
+  }
 }
 
 export function removeAuthToken(): void {
-  localStorage.removeItem('alqualite_coursebox_token');
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('alqualite_coursebox_token');
+    }
+  } catch {
+    delete memoryStore['alqualite_coursebox_token'];
+  }
 }
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {

@@ -38,8 +38,14 @@ ALIAS_MAP = {
     "bi_ghayd": "biology_ghayd",
     "chemistry_elements": "chemistry_elements",
     "ch_pt": "chemistry_elements",
-    "persian_emla": "persian_emla",
-    "fa_emla": "persian_emla",
+    "persian10_emla": "persian10_emla",
+    "fa10_emla": "persian10_emla",
+    "persian11_emla": "persian11_emla",
+    "fa11_emla": "persian11_emla",
+    "persian12_emla": "persian12_emla",
+    "fa12_emla": "persian12_emla",
+    "persian_emla": "persian12_emla",
+    "fa_emla": "persian12_emla",
     "persian_araye": "persian_araye",
     "fa_araye": "persian_araye",
     "chemistry_catalysts_colors": "chemistry_catalysts_colors",
@@ -113,8 +119,27 @@ def resolve_course_payload(raw_course_id: str, user_id: Optional[int] = None) ->
 
     raise HTTPException(status_code=404, detail="دوره آموزشی یافت نشد.")
 
+STABLE_COURSE_IDS = {
+    "persian10_vocab", "persian11_vocab", "persian12_vocab",
+    "persian10_emla", "persian11_emla", "persian12_emla",
+    "persian10_elam", "persian11_elam", "persian12_elam",
+    "arabic10_vocab", "arabic11_vocab", "arabic12_vocab"
+}
+
+STABLE_TOPIC_CODES = {
+    "FA10", "FA11", "FA12",
+    "fa10_emla", "fa11_emla", "fa12_emla",
+    "FA10E", "FA11E", "FA12E",
+    "AR10", "AR11", "AR12"
+}
+
 @router.get("", response_model=List[CourseSummary])
-def list_courses(user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
+def list_courses(user: Optional[Dict[str, Any]] = Depends(get_optional_user), include_dev: bool = False):
+    if isinstance(user, dict):
+        is_su = bool(user.get("is_superuser") or user.get("access_level") == "SUPERUSER" or user.get("username") == "amirtaii8123")
+    else:
+        is_su = False
+    allow_dev = is_su or include_dev
     result: List[CourseSummary] = []
 
     # 1. Builtin courses from assets/courses
@@ -124,6 +149,13 @@ def list_courses(user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
                 with open(p, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     cid = p.stem
+                    topic_code = data.get("topic_code", cid)
+                    is_stable = (cid in STABLE_COURSE_IDS) or (topic_code in STABLE_TOPIC_CODES)
+
+                    # Only stable courses visible for standard users
+                    if not is_stable and not allow_dev:
+                        continue
+
                     parts = data.get("parts", [])
                     slides_count = sum(len(part.get("eus", [])) for part in parts) if parts else len(data.get("eus", []))
                     parts_count = len(parts) if parts else 1
@@ -154,14 +186,15 @@ def list_courses(user: Optional[Dict[str, Any]] = Depends(get_optional_user)):
                     result.append(CourseSummary(
                         id=f"builtin-{cid}",
                         title=data.get("title", cid),
-                        topic_code=data.get("topic_code", cid),
+                        topic_code=topic_code,
                         subject=subject,
                         grade=grade,
                         description=data.get("description", "محتوای آموزشی تعاملی و تمرین شناختی"),
                         parts_count=parts_count,
                         slides_count=slides_count,
                         type="builtin",
-                        is_review=False
+                        is_review=False,
+                        is_development=not is_stable
                     ))
             except Exception:
                 continue

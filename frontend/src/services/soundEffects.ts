@@ -1,4 +1,4 @@
-// Web Audio API Synthesizer for Alqualite CourseBox
+// Web Audio API Synthesizer for Mediaz
 // Provides instant offline acoustic feedback without external audio files
 
 class SoundManager {

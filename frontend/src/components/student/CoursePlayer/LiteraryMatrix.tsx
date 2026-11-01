@@ -290,11 +290,11 @@ export const LiteraryMatrix: React.FC<Props> = ({ eu }) => {
 
       {/* Action Buttons */}
       {!isEvaluated && (
-        <div className="flex items-center justify-between gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 sm:gap-3 pt-2">
           <button
             type="button"
             onClick={handleReveal}
-            className="px-4 py-2.5 rounded-xl bg-white/80 hover:bg-white text-slate-500 hover:text-slate-700 text-xs font-bold border border-slate-200/80 cursor-pointer transition-all active:scale-95"
+            className="px-4 py-2.5 rounded-xl bg-white/80 hover:bg-white text-slate-500 hover:text-slate-700 text-xs font-bold border border-slate-200/80 cursor-pointer transition-all active:scale-95 text-center"
           >
             مشاهده مستقیم پاسخ و تحلیل
           </button>
@@ -302,7 +302,7 @@ export const LiteraryMatrix: React.FC<Props> = ({ eu }) => {
           <button
             type="button"
             onClick={handleEvaluate}
-            className="px-8 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-lg shadow-blue-500/25 cursor-pointer transition-all active:scale-95 flex items-center gap-2"
+            className="px-6 sm:px-8 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black shadow-lg shadow-blue-500/25 cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
           >
             <span>بررسی و ارزیابی ماتریس</span>
             <span>✓</span>
