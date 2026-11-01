@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.py"
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": "/frontend/dist/assets/$1"
+    },
+    {
+      "source": "/favicon.svg",
+      "destination": "/frontend/dist/favicon.svg"
+    },
+    {
+      "source": "/mediaz-logo.png",
+      "destination": "/frontend/dist/mediaz-logo.png"
+    },
+    {
+      "source": "/mediaz-emblem-transparent.png",
+      "destination": "/frontend/dist/mediaz-emblem-transparent.png"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/dist/index.html"
+    }
+  ]
+}
