@@ -5,11 +5,27 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from aiogram import Bot
 from aiogram.types import Update
 
-from app.core.config import TELEGRAM_SECRET_TOKEN, WEB_APP_URL
+from app.core.config import TELEGRAM_SECRET_TOKEN, WEB_APP_URL, TELEGRAM_BOT_TOKEN
 from app.bot.dispatcher import dp
 
 logger = logging.getLogger("TelegramWebhookAPI")
 router = APIRouter(prefix="/telegram", tags=["telegram_webhook"])
+
+
+def get_or_create_bot(request: Request) -> Optional[Bot]:
+    """
+    Retrieves the Bot instance from application state or lazily initializes it.
+    Ensures cold-start serverless requests never fail with 503 uninitialized.
+    """
+    bot: Optional[Bot] = getattr(request.app.state, "bot", None)
+    if not bot and TELEGRAM_BOT_TOKEN:
+        try:
+            bot = Bot(token=TELEGRAM_BOT_TOKEN)
+            request.app.state.bot = bot
+            logger.info("Lazy-initialized Telegram Bot instance on serverless request.")
+        except Exception as e:
+            logger.error(f"Failed to lazy-initialize Telegram Bot: {e}")
+    return bot
 
 
 @router.post("/webhook")
@@ -29,7 +45,7 @@ async def telegram_webhook_handler(
             logger.warning("Rejected webhook update: missing or invalid secret token.")
             raise HTTPException(status_code=403, detail="Invalid Telegram webhook secret token")
 
-    bot: Optional[Bot] = getattr(request.app.state, "bot", None)
+    bot: Optional[Bot] = get_or_create_bot(request)
     if not bot:
         logger.error("Bot instance not available in application state.")
         raise HTTPException(status_code=503, detail="Telegram bot service not initialized")
@@ -50,9 +66,9 @@ async def telegram_bot_status(request: Request):
     """
     Diagnostics endpoint for checking Telegram bot connectivity and webhook status.
     """
-    bot: Optional[Bot] = getattr(request.app.state, "bot", None)
+    bot: Optional[Bot] = get_or_create_bot(request)
     if not bot:
-        return {"active": False, "reason": "Bot instance not initialized"}
+        return {"active": False, "reason": "Bot instance not initialized (TELEGRAM_BOT_TOKEN missing)"}
 
     try:
         me = await bot.get_me()

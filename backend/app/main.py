@@ -37,19 +37,29 @@ async def lifespan(app: FastAPI):
             # Automatic Webhook and Menu Button Configuration
             if WEB_APP_URL:
                 webhook_url = f"{WEB_APP_URL}/api/telegram/webhook"
-                logger.info(f"Configuring Telegram webhook -> {webhook_url}")
-                await bot.set_webhook(
-                    url=webhook_url,
-                    secret_token=TELEGRAM_SECRET_TOKEN if TELEGRAM_SECRET_TOKEN else None,
-                    drop_pending_updates=True
-                )
-                logger.info(f"Configuring Telegram Menu Button -> {WEB_APP_URL}")
-                await bot.set_chat_menu_button(
-                    menu_button=MenuButtonWebApp(
-                        text="ورود به مدیاز 🚀",
-                        web_app=WebAppInfo(url=WEB_APP_URL)
+                try:
+                    curr_info = await bot.get_webhook_info()
+                    needs_update = curr_info.url != webhook_url
+                except Exception as check_err:
+                    logger.warning(f"Could not check existing Telegram webhook: {check_err}")
+                    needs_update = True
+
+                if needs_update:
+                    logger.info(f"Configuring Telegram webhook -> {webhook_url}")
+                    await bot.set_webhook(
+                        url=webhook_url,
+                        secret_token=TELEGRAM_SECRET_TOKEN if TELEGRAM_SECRET_TOKEN else None,
+                        drop_pending_updates=False
                     )
-                )
+                    logger.info(f"Configuring Telegram Menu Button -> {WEB_APP_URL}")
+                    await bot.set_chat_menu_button(
+                        menu_button=MenuButtonWebApp(
+                            text="ورود به مدیاز 🚀",
+                            web_app=WebAppInfo(url=WEB_APP_URL)
+                        )
+                    )
+                else:
+                    logger.info(f"Telegram webhook already verified pointing to {webhook_url}.")
             else:
                 logger.info("WEB_APP_URL not set; running in local API mode without active webhook.")
         except Exception as e:
