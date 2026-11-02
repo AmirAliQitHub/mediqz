@@ -48,22 +48,22 @@ export const UserProfileMenu: React.FC = () => {
           e.stopPropagation();
           setIsOpen((prev) => !prev);
         }}
-        className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-3 sm:py-1 rounded-full border shadow-xs backdrop-blur-xl transition-all duration-200 cursor-pointer ${
+        className={`flex items-center gap-1.5 sm:gap-2 p-1 sm:px-3 sm:py-1 rounded-full border shadow-xs backdrop-blur-xl transition-all duration-200 cursor-pointer min-h-[38px] min-w-[38px] justify-center ${
           isOpen
             ? 'bg-white text-blue-950 border-blue-400 shadow-md ring-2 ring-blue-500/20'
-            : 'bg-white/85 hover:bg-white text-blue-950 border-blue-900/15'
+            : 'bg-white/90 hover:bg-white text-blue-950 border-slate-200/80'
         }`}
         aria-expanded={isOpen}
       >
-        <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gradient-to-tr from-cyan-400 via-blue-600 to-indigo-600 text-white font-black text-[11px] flex items-center justify-center shrink-0 shadow-xs ring-1 ring-white/80">
+        <div className="w-7 h-7 sm:w-6 sm:h-6 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-xs ring-1 ring-white/90">
           {user.display_name.charAt(0) || 'م'}
         </div>
-        <span className="hidden sm:inline text-xs font-black text-blue-950 truncate max-w-[110px]">
+        <span className="hidden sm:inline text-xs font-bold text-slate-800 truncate max-w-[120px]">
           {user.display_name}
         </span>
         <svg
-          className={`hidden sm:block w-3 h-3 text-blue-600 transition-transform duration-200 shrink-0 ${
-            isOpen ? 'rotate-180' : ''
+          className={`hidden sm:block w-3 h-3 text-slate-400 transition-transform duration-200 shrink-0 ${
+            isOpen ? 'rotate-180 text-blue-600' : ''
           }`}
           fill="none"
           stroke="currentColor"
