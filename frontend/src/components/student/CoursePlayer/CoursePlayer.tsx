@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlignLeft, Type, ArrowRight, LogOut } from 'lucide-react';
 import { useCourseStore } from '../../../store/useCourseStore';
 import { useAuthStore } from '../../../store/useAuthStore';
@@ -26,6 +26,32 @@ export const CoursePlayer: React.FC = () => {
     toggleContextSentence
   } = useCourseStore();
   const { setActiveTab } = useAuthStore();
+
+  const [keyboardOffset, setKeyboardOffset] = useState<number>(0);
+
+  // Dynamic visualViewport listener for mobile virtual keyboard offset
+  useEffect(() => {
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const offset = Math.max(
+          0,
+          window.innerHeight - (window.visualViewport.offsetTop + window.visualViewport.height)
+        );
+        setKeyboardOffset(offset);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+    }
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
+      }
+    };
+  }, []);
 
   // Map Enter key globally to next control for frictionless progression
   useEffect(() => {
@@ -89,7 +115,7 @@ export const CoursePlayer: React.FC = () => {
   const isTree = currentEU?.type === 'tree_diagram';
 
   return (
-    <main className="w-full h-[100dvh] max-h-[100dvh] pt-[calc(3.5rem+var(--sat,0px))] sm:pt-16 md:pt-20 pb-4 overflow-hidden flex flex-col items-center justify-between px-2 sm:px-4 animate-fadeIn select-none">
+    <main className="w-full h-[100dvh] max-h-[100dvh] pt-[calc(0.75rem+var(--sat,0px))] sm:pt-6 md:pt-8 pb-4 overflow-hidden flex flex-col items-center justify-between px-2 sm:px-4 animate-fadeIn select-none">
       {/* Top Breadcrumb & Return */}
       <div className={`w-full ${isTree ? 'max-w-[96vw]' : 'max-w-4xl'} flex justify-between items-center mb-2 flex-shrink-0 transition-all duration-300 gap-1.5 sm:gap-2`}>
         <div className="flex items-center gap-1.5">
@@ -189,7 +215,10 @@ export const CoursePlayer: React.FC = () => {
 
       {/* Main Slide Content Area */}
       <div
-        className={`w-full ${isTree ? 'max-w-[96vw]' : 'max-w-4xl'} flex-1 min-h-0 overflow-y-auto py-1 sm:py-2 pb-40 sm:pb-32 transition-all duration-300`}
+        className={`w-full ${isTree ? 'max-w-[96vw]' : 'max-w-4xl'} flex-1 min-h-0 overflow-y-auto py-1 sm:py-2 transition-all duration-300`}
+        style={{
+          paddingBottom: keyboardOffset > 0 ? `${keyboardOffset + 76}px` : '10rem'
+        }}
       >
         <div className="eu-stage w-full min-h-full flex items-start justify-center pt-2 sm:pt-6 px-1 sm:px-2">
           {renderEUSlide()}
@@ -197,7 +226,12 @@ export const CoursePlayer: React.FC = () => {
       </div>
 
       {/* Floating Bottom Navigation Pill */}
-      <div className="fixed bottom-[calc(0.75rem+var(--sab,0px))] sm:bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-3 px-3.5 sm:px-5 py-2 rounded-full bg-white/95 backdrop-blur-2xl border border-white/90 shadow-2xl z-40 max-w-[96vw]">
+      <div
+        style={{
+          bottom: `calc(0.75rem + var(--sab, 0px) + ${keyboardOffset}px)`
+        }}
+        className="fixed left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-3 px-3.5 sm:px-5 py-2 rounded-full bg-white/95 backdrop-blur-2xl border border-white/90 shadow-2xl z-40 max-w-[96vw] transition-[bottom] duration-150 ease-out"
+      >
         <button
           onClick={prevSlide}
           disabled={currentSlideIndex === 0}

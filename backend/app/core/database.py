@@ -11,6 +11,7 @@ def get_user_db() -> sqlite3.Connection:
         shutil.copy2(str(ASSETS_DIR / "userdata.db"), str(DB_USER_PATH))
     conn = sqlite3.connect(str(DB_USER_PATH), timeout=15.0)
     conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA synchronous = NORMAL;")
     conn.execute("PRAGMA busy_timeout=5000;")
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.row_factory = sqlite3.Row
@@ -145,6 +146,45 @@ def init_databases() -> None:
         c.execute("CREATE INDEX IF NOT EXISTS idx_review_logs_user ON review_logs(user_id, reviewed_at);")
         c.execute("CREATE INDEX IF NOT EXISTS idx_review_logs_card ON review_logs(card_id);")
         c.execute("CREATE INDEX IF NOT EXISTS idx_review_logs_tg ON review_logs(telegram_user_id, reviewed_at);")
+
+        # Granular Educational Unit (EU) first-pass activity logs
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS eu_activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                course_id TEXT NOT NULL,
+                part_id TEXT NOT NULL,
+                eu_id TEXT NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('correct', 'incorrect', 'null')),
+                user_answer TEXT,
+                shamsi_date TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_eu_activity_user_course_date ON eu_activity_logs(user_id, course_id, shamsi_date);")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_eu_activity_user_status ON eu_activity_logs(user_id, status);")
+
+        # Cloud-synchronized Routine daily schedules
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS user_routines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                shamsi_date TEXT NOT NULL,
+                course_id TEXT NOT NULL,
+                course_title TEXT NOT NULL,
+                part_id TEXT NOT NULL,
+                part_title TEXT NOT NULL,
+                slide_count INTEGER DEFAULT 0,
+                completed INTEGER DEFAULT 0,
+                completed_at TEXT,
+                order_idx INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_user_routines_date ON user_routines(user_id, shamsi_date);")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_user_routines_completed ON user_routines(user_id, completed);")
 
         # Ensure migration columns for users table
         existing_cols = [r[1] for r in c.execute("PRAGMA table_info(users)").fetchall()]

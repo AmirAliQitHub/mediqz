@@ -83,3 +83,27 @@ class CourseImportReq(BaseModel):
     description: Optional[str] = ""
     parts: Optional[List[Dict[str, Any]]] = None
     eus: Optional[List[Dict[str, Any]]] = None
+
+class EULogItem(BaseModel):
+    course_id: str
+    part_id: str
+    eu_id: str
+    status: str  # 'correct' | 'incorrect' | 'null'
+    user_answer: Optional[str] = None
+    shamsi_date: str  # e.g. '1405-08-12'
+
+class EULogBatchReq(BaseModel):
+    items: List[EULogItem]
+
+class UserRoutineItem(BaseModel):
+    shamsi_date: str
+    course_id: str
+    course_title: str
+    part_id: str
+    part_title: str
+    slide_count: int = 0
+    completed: bool = False
+    order_idx: int = 0
+
+class UserRoutinesSyncReq(BaseModel):
+    routines: List[UserRoutineItem]

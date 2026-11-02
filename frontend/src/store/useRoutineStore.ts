@@ -2,6 +2,13 @@ import { create } from 'zustand';
 import { EU, Part, Course, CourseSummary } from '../types';
 import { useCourseStore } from './useCourseStore';
 import { useAuthStore } from './useAuthStore';
+import {
+  generateInitialShamsiDays,
+  getShamsiDateInfo,
+  getEffectiveStudyDate,
+  getCurrentShamsiDateString,
+  ShamsiDateInfo
+} from '../utils/shamsiCalendar';
 
 export interface RoutineItem {
   id: string;
@@ -17,6 +24,13 @@ export interface RoutineItem {
 export interface RoutineDay {
   day_number: number;
   title: string;
+  shamsi_date: string;
+  weekday_name?: string;
+  day_str?: string;
+  month_name?: string;
+  is_today?: boolean;
+  is_friday?: boolean;
+  is_future?: boolean;
   date_label?: string;
   items: RoutineItem[];
 }
@@ -62,19 +76,22 @@ const STORAGE_KEY_MISTAKES = 'mediaz_routine_mistakes_v1';
 const STORAGE_KEY_CURRENT_DAY = 'mediaz_routine_current_day_v1';
 
 function getTodayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return getCurrentShamsiDateString();
 }
 
-const defaultInitialDays: RoutineDay[] = [
-  { day_number: 1, title: 'روز ۱ (امروز)', items: [] },
-  { day_number: 2, title: 'روز ۲', items: [] },
-  { day_number: 3, title: 'روز ۳', items: [] },
-  { day_number: 4, title: 'روز ۴', items: [] },
-  { day_number: 5, title: 'روز ۵', items: [] },
-  { day_number: 6, title: 'روز ۶', items: [] },
-  { day_number: 7, title: 'روز ۷', items: [] },
-];
+const initialShamsiList = generateInitialShamsiDays(7);
+const defaultInitialDays: RoutineDay[] = initialShamsiList.map((s) => ({
+  day_number: s.day_number,
+  title: s.title,
+  shamsi_date: s.shamsi_date,
+  weekday_name: s.weekday_name,
+  day_str: s.day_str,
+  month_name: s.month_name,
+  is_today: s.is_today,
+  is_friday: s.is_friday,
+  is_future: s.is_future,
+  items: [],
+}));
 
 export const useRoutineStore = create<RoutineState>((set, get) => {
   // Load saved state
@@ -85,7 +102,18 @@ export const useRoutineStore = create<RoutineState>((set, get) => {
   if (typeof window !== 'undefined') {
     try {
       const savedDays = localStorage.getItem(STORAGE_KEY_ROUTINE);
-      if (savedDays) initialDays = JSON.parse(savedDays);
+      if (savedDays) {
+        const parsed: RoutineDay[] = JSON.parse(savedDays);
+        // If saved days lack real shamsi_date, upgrade them with fresh Shamsi dates
+        if (parsed.length > 0 && parsed[0].shamsi_date) {
+          initialDays = parsed;
+        } else {
+          initialDays = defaultInitialDays.map((d, idx) => ({
+            ...d,
+            items: parsed[idx]?.items || [],
+          }));
+        }
+      }
       const savedMistakes = localStorage.getItem(STORAGE_KEY_MISTAKES);
       if (savedMistakes) initialMistakes = JSON.parse(savedMistakes);
       const savedCurDay = localStorage.getItem(STORAGE_KEY_CURRENT_DAY);
@@ -123,7 +151,22 @@ export const useRoutineStore = create<RoutineState>((set, get) => {
       const currentDays = [...get().days];
       let day = currentDays.find((d) => d.day_number === dayNumber);
       if (!day) {
-        day = { day_number: dayNumber, title: `روز ${dayNumber}`, items: [] };
+        const start = getEffectiveStudyDate();
+        const curDate = new Date(start);
+        curDate.setDate(start.getDate() + (dayNumber - 1));
+        const sInfo = getShamsiDateInfo(curDate, dayNumber);
+        day = {
+          day_number: dayNumber,
+          title: sInfo.title,
+          shamsi_date: sInfo.shamsi_date,
+          weekday_name: sInfo.weekday_name,
+          day_str: sInfo.day_str,
+          month_name: sInfo.month_name,
+          is_today: sInfo.is_today,
+          is_friday: sInfo.is_friday,
+          is_future: sInfo.is_future,
+          items: [],
+        };
         currentDays.push(day);
         currentDays.sort((a, b) => a.day_number - b.day_number);
       }
@@ -210,9 +253,21 @@ export const useRoutineStore = create<RoutineState>((set, get) => {
           completed: false,
         }));
 
+        const start = getEffectiveStudyDate();
+        const curDate = new Date(start);
+        curDate.setDate(start.getDate() + (dayIdx - 1));
+        const sInfo = getShamsiDateInfo(curDate, dayIdx);
+
         newDays.push({
           day_number: dayIdx,
-          title: `روز ${dayIdx}${dayIdx === 1 ? ' (شروع)' : ''}`,
+          title: sInfo.title,
+          shamsi_date: sInfo.shamsi_date,
+          weekday_name: sInfo.weekday_name,
+          day_str: sInfo.day_str,
+          month_name: sInfo.month_name,
+          is_today: sInfo.is_today,
+          is_friday: sInfo.is_friday,
+          is_future: sInfo.is_future,
           items,
         });
         dayIdx++;

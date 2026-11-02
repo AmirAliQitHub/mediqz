@@ -39,68 +39,68 @@ export const MobileBottomNav: React.FC = () => {
       style={{ bottom: 'calc(var(--sab, 0px) + 0.65rem)' }}
       className="sm:hidden fixed left-3 right-3 z-40 max-w-sm mx-auto select-none"
     >
-      <div className="bg-white/92 backdrop-blur-2xl border border-white/80 shadow-[0_10px_35px_-4px_rgba(30,58,138,0.22)] rounded-3xl p-1.5 flex items-center justify-between ring-1 ring-blue-500/10">
+      <div className="bg-slate-950/85 backdrop-blur-2xl border border-white/15 shadow-[0_12px_32px_rgba(0,0,0,0.45)] rounded-2xl p-1 flex items-center justify-between ring-1 ring-white/10">
         {/* 1. دوره‌ها */}
         <button
           type="button"
           onClick={() => handleTabClick('courses')}
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 ${
             isCourseActive
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
-              : 'text-slate-600 hover:text-blue-950 hover:bg-blue-50/60'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <BookOpen className={`w-4.5 h-4.5 ${isCourseActive ? 'text-white' : 'text-slate-600'}`} />
-          <span className="text-[10px] font-black mt-0.5 tracking-tight">دوره‌ها</span>
+          <BookOpen className={`w-4 h-4 ${isCourseActive ? 'text-white' : 'text-slate-400'}`} />
+          <span className="text-[9.5px] font-black mt-0.5 tracking-tight">دوره‌ها</span>
         </button>
 
         {/* 2. روتین‌ها (با نشانگر تسک‌های امروز) */}
         <button
           type="button"
           onClick={() => handleTabClick('routines')}
-          className={`relative flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`relative flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 ${
             isRoutineActive
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
-              : 'text-slate-600 hover:text-blue-950 hover:bg-blue-50/60'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
           <div className="relative">
-            <CalendarCheck className={`w-4.5 h-4.5 ${isRoutineActive ? 'text-white' : 'text-slate-600'}`} />
+            <CalendarCheck className={`w-4 h-4 ${isRoutineActive ? 'text-white' : 'text-slate-400'}`} />
             {dueCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-1 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-xs animate-pulse">
+              <span className="absolute -top-1 -right-1.5 min-w-3.5 h-3.5 px-1 bg-rose-500 text-white text-[8.5px] font-black rounded-full flex items-center justify-center shadow-xs animate-pulse">
                 {dueCount}
               </span>
             )}
           </div>
-          <span className="text-[10px] font-black mt-0.5 tracking-tight">روتین‌ها</span>
+          <span className="text-[9.5px] font-black mt-0.5 tracking-tight">روتین‌ها</span>
         </button>
 
         {/* 3. تحلیل */}
         <button
           type="button"
           onClick={() => handleTabClick('tahlil')}
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 ${
             isTahlilActive
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
-              : 'text-slate-600 hover:text-blue-950 hover:bg-blue-50/60'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <BarChart3 className={`w-4.5 h-4.5 ${isTahlilActive ? 'text-white' : 'text-slate-600'}`} />
-          <span className="text-[10px] font-black mt-0.5 tracking-tight">تحلیل</span>
+          <BarChart3 className={`w-4 h-4 ${isTahlilActive ? 'text-white' : 'text-slate-400'}`} />
+          <span className="text-[9.5px] font-black mt-0.5 tracking-tight">تحلیل</span>
         </button>
 
         {/* 4. حساب من */}
         <button
           type="button"
           onClick={() => handleTabClick('account')}
-          className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 ${
             isAccountActive
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
-              : 'text-slate-600 hover:text-blue-950 hover:bg-blue-50/60'
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/30'
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
           }`}
         >
-          <User className={`w-4.5 h-4.5 ${isAccountActive ? 'text-white' : 'text-slate-600'}`} />
-          <span className="text-[10px] font-black mt-0.5 tracking-tight">پروفایل</span>
+          <User className={`w-4 h-4 ${isAccountActive ? 'text-white' : 'text-slate-400'}`} />
+          <span className="text-[9.5px] font-black mt-0.5 tracking-tight">پروفایل</span>
         </button>
       </div>
     </nav>

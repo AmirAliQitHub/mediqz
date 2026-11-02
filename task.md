@@ -1,17 +1,31 @@
-# Task Checklist: Mobile Ergonomics & TopBar HUD Overhaul (v2.8.0-mobile-hud)
+# Task Checklist: Alqualite (Mediaz) Multiagent Autonomous Overhaul (v3.0.0-master)
 
-## Phase 1: Mobile Navigation & Ergonomics Architecture
-- [x] Step 1.1: Mobile Floating Bottom Navigation Dock (`MobileBottomNav.tsx`)
-- [x] Step 1.2: Mobile TopBar HUD Transformation (`CourseBoxTopBar.tsx`, `UserProfileMenu.tsx`)
+## Module 1: Bot Revival, Credential Wiring & Live Debugging Setup
+- [x] Step 1.1: Backend & Bot Credential Alignment (`config.py`, `.env`)
+- [x] Step 1.2: Process & Port Watchdog Script (`check_processes.sh`)
+- [x] Step 1.3: Live Service & Bot Webhook Sanity Check (`test_bot_connectivity.py`)
 
-## Phase 2: Hero Banner De-slopping & Mobile Content Elevation
-- [x] Step 2.1: CourseLibrary Mobile Streamlining (`CourseLibrary.tsx`)
+## Module 2: Project-Wide `userdata.db` Strengthening & EU Logging Engine
+- [x] Step 2.1: `userdata.db` Schema Strengthening & Migration (`database.py`)
+- [x] Step 2.2: EU Activity Logging & Routine Schedule API Endpoints (`reviews.py`, `schemas.py`)
 
-## Phase 3: Verification, Vercel Deployment & E2E Validation
-- [x] Step 3.1: Frontend Build & Unit Test Verification
-- [x] Step 3.2: Production Push, Live Vercel Audit & Council Certification
+## Module 3: RoutineHub Overhaul, Iranian Shamsi Calendar & Smart Sorter
+- [x] Step 3.1: Single-Line Course Badge & Duplicate `+` Icon Fix (`RoutineHub.tsx`)
+- [x] Step 3.2: True Iranian Shamsi Calendar Utility & Store Integration (`shamsiCalendar.ts`, `useRoutineStore.ts`)
+- [x] Step 3.3: Strict Future-Date Execution Lock (`RoutineHub.tsx`)
+- [x] Step 3.4: Advanced Routine Sorter Popup (`چینش`) Modal (`RoutineSortModal.tsx`)
 
-## Phase 4: Council-Mandated TopBar Zen Refactoring & User Anchor Alignment (v2.9.0-topbar-zen)
-- [x] Step 4.1: TopBar RTL Realignment & Center Badge Subtraction (`CourseBoxTopBar.tsx`, `UserProfileMenu.tsx`)
-- [x] Step 4.2: Automated Browser Verification (`agent-browser`) on Mobile (375x812) & Desktop (1440x900)
-- [x] Step 4.3: Production Push & Final Live Verification
+## Module 4: CourseHub, Adaptive Bottom Capsule & Liquid-Glass Top Bar
+- [x] Step 4.1: Mediaz Logo Transparency Fix (`MediazLogo.tsx`, `mediaz-emblem-transparent.png`)
+- [x] Step 4.2: Liquid-Glass Top Bar & User Name Display (`CourseBoxTopBar.tsx`, `UserProfileMenu.tsx`)
+- [x] Step 4.3: Thinner Adaptive Floating Bottom Capsule (`MobileBottomNav.tsx`)
+
+## Module 5: Generic CourseView, Mobile Keyboard Fix, "Incorrects Hub" & Duolingo Loop
+- [x] Step 5.1: Mobile Study Player Viewport Flush Top & Virtual Keyboard Fix (`CoursePlayer.tsx`)
+- [ ] Step 5.2: "View Answer" = `null` First-Pass Outcome Rule (`FillInTheBlank.tsx`, `LearnBox.tsx`)
+- [ ] Step 5.3: In-Memory Duolingo End-of-Part Redemption Loop (`useCourseStore.ts`, `CoursePlayer.tsx`)
+- [ ] Step 5.4: Generic Course "Incorrects & Skipped Hub" (`CoursePartsView.tsx`, `CourseMistakesModal.tsx`)
+
+## Module 6: Comprehensive Telegram Bot & Mini App Audit & Product Roadmap
+- [ ] Step 6.1: Full-Suite Verification & Browser Automated E2E Testing (`verify_mobile_twa.py`, `test_full_suite.py`)
+- [ ] Step 6.2: Supreme Council Final Audit & Strategic Product Roadmap (`final_supreme_council_audit_report.md`, `AGENTS.md`)

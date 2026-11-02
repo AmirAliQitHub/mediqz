@@ -14,12 +14,15 @@ echo "=== [Watchdog] Starting Port & Process Collision Audit ==="
 
 # 1. Resolve Bot Token
 BOT_TOKEN="8882238851:AAFdbVIurZXP4nRwZ8EmvtmGwYUIFeOxc50"
-if [ -f "$BOT_DIR/.env" ]; then
-    EXTRACTED_TOKEN=$(grep -E "^BOT_TOKEN=" "$BOT_DIR/.env" | cut -d '=' -f2- | tr -d ' "\r\n' || true)
-    if [ -n "$EXTRACTED_TOKEN" ]; then
-        BOT_TOKEN="$EXTRACTED_TOKEN"
+for env_path in "$PROJECT_ROOT/.env" "$PROJECT_ROOT/backend/.env" "$BOT_DIR/.env"; do
+    if [ -f "$env_path" ]; then
+        EXTRACTED_TOKEN=$(grep -E "^(TELEGRAM_BOT_TOKEN|BOT_TOKEN)=" "$env_path" | head -n1 | cut -d '=' -f2- | tr -d ' "\r\n' || true)
+        if [ -n "$EXTRACTED_TOKEN" ]; then
+            BOT_TOKEN="$EXTRACTED_TOKEN"
+            break
+        fi
     fi
-fi
+done
 
 # Helper function to gracefully terminate a list of PIDs
 terminate_pids() {
@@ -94,11 +97,12 @@ if [ -n "$CLOUDFLARE_PIDS" ]; then
     terminate_pids "Orphaned cloudflared tunnels" "${P_ARR[@]}"
 fi
 
-# 6. Audit & Terminate Port Collisions on 8008 (FastAPI) and 3000 (Vite)
-PORT_PIDS=$(lsof -nP -ti tcp:8008,tcp:3000 2>/dev/null || true)
+# 6. Audit & Terminate Port Collisions on 8000, 8008, 3000, and 8095
+AUDIT_PORTS="tcp:8000,tcp:8008,tcp:3000,tcp:8095"
+PORT_PIDS=$(lsof -nP -ti "$AUDIT_PORTS" 2>/dev/null || true)
 if [ -n "$PORT_PIDS" ]; then
     read -r -a P_ARR <<< "$PORT_PIDS"
-    terminate_pids "Port 8008 / 3000 listeners" "${P_ARR[@]}"
+    terminate_pids "Port (8000/8008/3000/8095) listeners" "${P_ARR[@]}"
 fi
 
 # 7. Telegram Server-Side Reset (Drop pending getUpdates backlog)
@@ -111,11 +115,11 @@ else
 fi
 
 # 8. Post-Execution Gate Verification
-LEFTOVER_PORTS=$(lsof -nP -ti tcp:8008,tcp:3000 2>/dev/null || true)
+LEFTOVER_PORTS=$(lsof -nP -ti "$AUDIT_PORTS" 2>/dev/null || true)
 if [ -n "$LEFTOVER_PORTS" ]; then
-    echo "[!] ERROR: Ports 8008 or 3000 are still occupied by PIDs: $LEFTOVER_PORTS" >&2
+    echo "[!] ERROR: Monitored ports (8000, 8008, 3000, 8095) are still occupied by PIDs: $LEFTOVER_PORTS" >&2
     exit 1
 fi
 
-echo "=== [Watchdog] Audit Complete. Ports 8008 & 3000 are clean. Environment is ready. ==="
+echo "=== [Watchdog] Audit Complete. Ports 8000, 8008, 3000, 8095 are clean. Environment is ready. ==="
 exit 0

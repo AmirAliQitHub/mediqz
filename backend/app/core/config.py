@@ -4,17 +4,17 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-# Auto-load .env if present without hardcoding secrets in public code
-env_file = BASE_DIR / ".env"
-if env_file.exists():
-    try:
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
-    except Exception:
-        pass
+# Auto-load .env if present from backend or root without hardcoding secrets
+for candidate_env in [BASE_DIR / ".env", BASE_DIR.parent / ".env"]:
+    if candidate_env.exists():
+        try:
+            for line in candidate_env.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+        except Exception:
+            pass
 
 ASSETS_DIR = BASE_DIR / "assets"
 COURSES_DIR = ASSETS_DIR / "courses"

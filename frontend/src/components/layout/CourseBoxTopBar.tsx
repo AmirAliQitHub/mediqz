@@ -20,7 +20,7 @@ export const CourseBoxTopBar: React.FC = () => {
     <header
       dir="rtl"
       style={{ paddingTop: 'var(--sat, 0px)' }}
-      className="fixed top-0 left-0 right-0 z-50 select-none bg-white/90 backdrop-blur-xl border-b border-slate-200/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+      className="fixed top-0 left-0 right-0 z-50 select-none bg-white/80 backdrop-blur-2xl border-b border-white/60 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.03)]"
     >
       <div className="relative h-12 sm:h-14 px-3 sm:px-6 md:px-8 flex items-center justify-between">
         
