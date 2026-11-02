@@ -13,5 +13,5 @@
 
 ## Phase 4: Council-Mandated TopBar Zen Refactoring & User Anchor Alignment (v2.9.0-topbar-zen)
 - [x] Step 4.1: TopBar RTL Realignment & Center Badge Subtraction (`CourseBoxTopBar.tsx`, `UserProfileMenu.tsx`)
-- [ ] Step 4.2: Automated Browser Verification (`agent-browser`) on Mobile (375x812) & Desktop (1440x900)
-- [ ] Step 4.3: Production Push & Final Live Verification
+- [x] Step 4.2: Automated Browser Verification (`agent-browser`) on Mobile (375x812) & Desktop (1440x900)
+- [x] Step 4.3: Production Push & Final Live Verification
