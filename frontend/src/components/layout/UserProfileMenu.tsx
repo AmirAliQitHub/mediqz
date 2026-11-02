@@ -76,7 +76,7 @@ export const UserProfileMenu: React.FC = () => {
       {isOpen && (
         <div
           dir="rtl"
-          className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-20px)] rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 text-right animate-fadeIn z-50 border border-blue-100 bg-white shadow-blue-900/20"
+          className="absolute top-full right-0 left-auto mt-2 w-72 max-w-[calc(100vw-20px)] rounded-2xl shadow-2xl p-2.5 flex flex-col gap-1.5 text-right animate-fadeIn z-50 border border-blue-100 bg-white shadow-blue-900/20"
         >
           {/* User Info Header */}
           <div className="p-2.5 border-b border-blue-100/80 flex items-center gap-2.5 mb-1 bg-blue-50/60 rounded-xl">

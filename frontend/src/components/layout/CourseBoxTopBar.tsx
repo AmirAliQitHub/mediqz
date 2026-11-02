@@ -1,5 +1,5 @@
 import React from 'react';
-import { CalendarCheck, BarChart3, BookOpen } from 'lucide-react';
+import { CalendarCheck, BarChart3, BookOpen, Sparkles } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useRoutineStore } from '../../store/useRoutineStore';
 import { UserProfileMenu } from './UserProfileMenu';
@@ -76,8 +76,14 @@ export const CourseBoxTopBar: React.FC = () => {
           </button>
         </div>
 
-        {/* 3. LEFT SIDE (in RTL): Brand Emblem (Subtle Hallmark & Home Link) */}
-        <div className="flex items-center shrink-0">
+        {/* 3. LEFT SIDE (in RTL): Brand Emblem, Persian Title & Ferdowsi Epigraph */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {/* Ferdowsi Epigraph (Widescreen only, hidden on mobile/tablet) */}
+          <div className="hidden xl:flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border border-amber-300/30 text-amber-900/80 text-[11px] font-medium tracking-tight">
+            <Sparkles className="w-3 h-3 text-amber-500 animate-pulse" />
+            <span className="font-serif">«توانا بود هر که دانا بود»</span>
+          </div>
+
           <button
             type="button"
             onClick={() => setActiveTab('courses')}
@@ -85,7 +91,8 @@ export const CourseBoxTopBar: React.FC = () => {
             title="بازگشت به خانه • مدیاز"
           >
             <span className="text-xs font-black text-slate-900 tracking-tight">مدیاز</span>
-            <MediazLogo size="sm" showText={false} />
+            <MediazLogo size="sm" showText={false} className="sm:hidden" />
+            <MediazLogo size="md" showText={false} className="hidden sm:inline-flex" />
           </button>
         </div>
 

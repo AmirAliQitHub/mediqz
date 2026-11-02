@@ -29,12 +29,12 @@ You MUST operate strictly as a Single-Step State Machine following this exact 5-
 - Compare your actual changes against every requirement written in that step of `implementation_plan.md`.
 - Only after verifying 100% compliance, open `task.md` and mark `[x]` for ONLY that single completed item (leaving all subsequent items as `[ ]`).
 
-## PHASE 5: HARD STOP, Turn Termination & Mandatory Interrogation
-- Updating that single `[x]` in `task.md` is your FINAL permitted tool call for the turn.
-- Once `task.md` is updated with that single `[x]`, you are strictly forbidden from invoking any further file edits, terminal commands, or sub-tasks.
-- End your turn immediately and present this exact 4-part check-in report to the user:
-  1. **Step Completed (`[x]`):** State the exact step number and files modified.
-  2. **Plan Alignment Audit:** Confirm how the output matches `implementation_plan.md` (or report any discrepancies found).
-  3. **Questions, Edge Cases & Design Decisions:** Ask the user any clarifying questions about the work just completed or choices required for the upcoming step.
-  4. **Explicit Gate Request:** End your message with: *"Step [X] is complete and verified against the Implementation Plan. Please answer the questions above and explicitly confirm when I should proceed to Step [X+1]."*
-- Wait passively. Do NOT proceed to Step [X+1] until the user sends a reply granting permission.
+## PHASE 5: Post-Step Gate & Autonomous Progression
+- Updating that single `[x]` in `task.md` is your FINAL permitted file edit tool call for that step.
+- Check the active governance mode:
+  1. **Standard Interactive Mode:**
+     - Present the exact 4-part check-in report to the user (Step Completed, Plan Alignment Audit, Questions/Edge Cases, and Explicit Gate Request).
+     - Wait passively. Do NOT proceed to Step [X+1] until the user sends a reply granting permission.
+  2. **Autonomous Bicameral Governance Mode (Hands-Off Executive Mode):**
+     - The "Wait for Human User Confirmation" gate is strictly replaced by the **Dual-Signature Gate (`AG_COMPLIANCE_CLEARED` + `COUNCIL_APPROVAL`)**.
+     - Once both `attorney-general` (confirming strict single-step compliance, zero batching, and 100% plan fidelity) and `supreme-council-gatekeeper` (synthesizing hyper-critical sign-off from all 5 Council Personas) have formally issued clearance, the orchestrator MUST immediately advance to Phase 1 of Step [X+1] without halting for human intervention.
