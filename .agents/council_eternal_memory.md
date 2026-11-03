@@ -18,6 +18,9 @@
   - Webhook URL: `https://195-248-241-36.sslip.io/api/telegram/webhook`.
   - Chat Menu Button: "ورود به مدیاز 🚀" pointing to `https://195-248-241-36.sslip.io/`.
   - Direct unfiltered connection between German server and `api.telegram.org` (0% packet loss).
+  - Cryptographic WebApp Authentication: Validates `window.Telegram.WebApp.initData` using standard HMAC-SHA256 against `bot_token`.
+  - Telegram Magic Login Engine: Zero-password desktop login where laptop sends a push approval request to the user's `@MediqzBot` chat, and tapping «تایید ورود» on mobile Telegram automatically logs in the laptop.
+  - Strict 1-to-1 Telegram Identity: Each Telegram account (`telegram_user_id`) is strictly bound to at most 1 Mediqz user account. Account linking for users who initially registered on laptop is fully supported with collision protection.
 - **Production Server Infrastructure (ParsPack Germany `deCloud2`):**
   - IPv4: `195.248.241.36`
   - Hostname / Domain: `195-248-241-36.sslip.io`
@@ -95,7 +98,23 @@
     - If toggled ON, shows input for $R$ (repetition days).
     - Algorithm: Each batch of $P$ parts is scheduled on day $T$ (initial study), then repeated identically on days $T+1, \dots, T+R$. Total days per batch = $1 + R$. Next batch starts on day $T + R + 1$.
     - If toggled OFF ($R = 0$), each batch takes 1 day.
-- **Phase 4: Schedule-to-Routine Translator Engine & Future Manual Editing:**
-  - Sorter outputs normal daily routine records in `useRoutineStore` and syncs to `userdata.db` (`user_routines` table).
-  - Preserves manual editing for future days: Users can click any future date tab, add, remove, or reorder parts manually.
-  - Execution lock enforced: "Start Routine" / "Play" is locked for future dates, but planning/editing remains 100% unlocked.
+
+---
+
+## 8. MODULE 8 SCOPE: AUTHENTICATION, TELEGRAM WEBAPP VALIDATION, MAGIC LOGIN & 1-TO-1 ACCOUNT LINKING
+- **Problem Diagnostics:**
+  1. TWA Silent Re-Registration Bug: `get_or_create_telegram_user` was overwriting user's custom `display_name` with raw Telegram first name on every launch, and onboarding modal lacked non-Telegram username/password configuration, leaving users unable to log in on desktop.
+  2. Missing Laptop Magic Login: Iranian students without desktop Telegram had to manually remember and type passwords; a Telegram bot approval mechanism was completely absent.
+  3. Disjoint Web/Telegram Accounts: A student registering on desktop had no clean way to link their Telegram account when later opening the Mini App, risking duplicate empty profiles.
+- **Architectural Solution:**
+  - **HMAC-SHA256 InitData Cryptographic Validation:** FastAPI endpoint `/api/auth/telegram-webapp` parses and verifies Telegram hash against `bot_token`.
+  - **Mandatory Non-Telegram Credentials Setup:** Both web registration and Telegram first-time onboarding require setting a unique `username` (verified via `/api/auth/check-username`) and `password` (min 4 characters), ensuring desktop access is always guaranteed.
+  - **Telegram Magic Login Engine (`magic_login_requests` table):**
+    - Desktop requests login with identifier -> server creates 120s TTL nonce -> bot sends inline keyboard push to user's Telegram chat (`✅ تایید ورود به لپ‌تاپ` / `❌ رد درخواست`).
+    - Webhook receives callback query, verifies `from_user.id == telegram_user_id`, sets status to `approved`, and issues session token.
+    - Desktop polls `/api/auth/magic-login/poll?nonce=...` and logs in automatically.
+  - **1-to-1 Account Linking & Collision Defense:**
+    - Each Telegram account is bound to exactly 1 user profile (`UNIQUE(telegram_user_id)`).
+    - If an unlinked desktop user opens TWA, they can link their existing credentials seamlessly via modal confirmation.
+    - Profile management displays linked Telegram status with link/unlink safeguards.
+

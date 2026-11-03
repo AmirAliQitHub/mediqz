@@ -10,6 +10,7 @@ export interface User {
   is_onboarded?: boolean;
   is_superuser?: boolean;
   telegram_user_id?: number | null;
+  telegram_username?: string | null;
   has_password?: boolean;
 }
 

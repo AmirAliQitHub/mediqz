@@ -1,9 +1,11 @@
 import logging
+from datetime import datetime
 from aiogram import Dispatcher, F, types
 from aiogram.filters import Command, CommandStart
 from aiogram.types import CallbackQuery
 
 from app.core.config import TELEGRAM_BOT_NAME, TELEGRAM_BOT_USERNAME
+from app.core.database import get_user_db
 from app.bot.data_loader import data_loader
 from app.bot.database import (
     register_user,
@@ -393,6 +395,89 @@ async def quiz_answer_callback(query: CallbackQuery):
 async def back_to_main_callback(query: CallbackQuery):
     await query.message.delete()
     await query.answer()
+
+
+@dp.callback_query(F.data.startswith("magic_login:approve:"))
+async def magic_login_approve_callback(query: CallbackQuery):
+    if not query.from_user or not query.data:
+        return
+    parts = query.data.split(":", 2)
+    if len(parts) < 3:
+        return
+    nonce = parts[2].strip()
+    with get_user_db() as conn:
+        req_row = conn.execute("SELECT * FROM magic_login_requests WHERE nonce = ?", (nonce,)).fetchone()
+        if not req_row:
+            await query.answer("⚠️ این درخواست ورود منقضی یا نامعتبر شده است.", show_alert=True)
+            if query.message:
+                try:
+                    await query.message.edit_text("⏳ درخواست ورود به نسخه وب نامعتبر یا منقضی شده است.")
+                except Exception:
+                    pass
+            return
+
+        # Strict ownership verification
+        if query.from_user.id != req_row["telegram_user_id"]:
+            await query.answer("⛔️ شما مجاز به تایید این درخواست نیستید.", show_alert=True)
+            return
+
+        now_str = datetime.now().isoformat()
+        if req_row["expires_at"] < now_str or req_row["status"] == "expired":
+            conn.execute("UPDATE magic_login_requests SET status = 'expired' WHERE nonce = ?", (nonce,))
+            conn.commit()
+            await query.answer("⚠️ مهلت ۲ دقیقه‌ای این درخواست به پایان رسیده است.", show_alert=True)
+            if query.message:
+                try:
+                    await query.message.edit_text("⏳ مهلت ۲ دقیقه‌ای ورود به نسخه وب به پایان رسید.")
+                except Exception:
+                    pass
+            return
+
+        if req_row["status"] != "pending":
+            await query.answer("این درخواست قبلاً تعیین تکلیف شده است.", show_alert=False)
+            return
+
+        conn.execute("UPDATE magic_login_requests SET status = 'approved' WHERE nonce = ?", (nonce,))
+        conn.commit()
+
+        await query.answer("🎉 ورود تایید شد! لپ‌تاپ شما وارد سامانه شد.", show_alert=True)
+        if query.message:
+            try:
+                await query.message.edit_text(
+                    "✅ **ورود به نسخه وب با موفقیت تایید شد.**\n\n"
+                    "لپ‌تاپ یا کامپیوتر شما هم‌اکنون به صورت خودکار وارد سامانه مدیاز شد. مطالعه پرباری داشته باشید! 🚀"
+                )
+            except Exception:
+                pass
+
+
+@dp.callback_query(F.data.startswith("magic_login:reject:"))
+async def magic_login_reject_callback(query: CallbackQuery):
+    if not query.from_user or not query.data:
+        return
+    parts = query.data.split(":", 2)
+    if len(parts) < 3:
+        return
+    nonce = parts[2].strip()
+    with get_user_db() as conn:
+        req_row = conn.execute("SELECT * FROM magic_login_requests WHERE nonce = ?", (nonce,)).fetchone()
+        if not req_row:
+            await query.answer("درخواست منقضی شده است.", show_alert=False)
+            return
+
+        if query.from_user.id != req_row["telegram_user_id"]:
+            await query.answer("⛔️ شما مجاز به پاسخ به این درخواست نیستید.", show_alert=True)
+            return
+
+        conn.execute("UPDATE magic_login_requests SET status = 'rejected' WHERE nonce = ?", (nonce,))
+        conn.commit()
+
+        await query.answer("درخواست ورود رد شد.", show_alert=False)
+        if query.message:
+            try:
+                await query.message.edit_text("❌ **درخواست ورود به نسخه وب لغو گردید.**")
+            except Exception:
+                pass
 
 
 @dp.message()

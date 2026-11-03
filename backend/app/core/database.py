@@ -1,7 +1,7 @@
 import sqlite3
 import shutil
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from app.core.config import DB_USER_PATH, ASSETS_DIR
 from app.core.security import hash_password, generate_salt
 
@@ -186,6 +186,27 @@ def init_databases() -> None:
         c.execute("CREATE INDEX IF NOT EXISTS idx_user_routines_date ON user_routines(user_id, shamsi_date);")
         c.execute("CREATE INDEX IF NOT EXISTS idx_user_routines_completed ON user_routines(user_id, completed);")
 
+        # Ephemeral Magic Login challenge requests table (Module 8)
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS magic_login_requests (
+                nonce TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                telegram_user_id INTEGER NOT NULL,
+                status TEXT NOT NULL CHECK(status IN ('pending', 'approved', 'rejected', 'consumed', 'expired')),
+                ip_address TEXT,
+                user_agent TEXT,
+                expires_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_magic_login_tg ON magic_login_requests(telegram_user_id, status);")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_magic_login_expires ON magic_login_requests(expires_at);")
+
+        # Automatic garbage collection of stale nonces older than 1 hour (Council Mandate #2)
+        cutoff_1h = (datetime.now() - timedelta(hours=1)).isoformat()
+        c.execute("DELETE FROM magic_login_requests WHERE expires_at < ?", (cutoff_1h,))
+
         # Ensure migration columns for users table
         existing_cols = [r[1] for r in c.execute("PRAGMA table_info(users)").fetchall()]
         if "grade" not in existing_cols:
@@ -196,10 +217,27 @@ def init_databases() -> None:
             c.execute("ALTER TABLE users ADD COLUMN is_superuser INTEGER DEFAULT 0")
         if "telegram_user_id" not in existing_cols:
             c.execute("ALTER TABLE users ADD COLUMN telegram_user_id INTEGER")
-            c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_telegram_user_id ON users(telegram_user_id) WHERE telegram_user_id IS NOT NULL;")
+        if "telegram_username" not in existing_cols:
+            c.execute("ALTER TABLE users ADD COLUMN telegram_username TEXT")
+            c.execute("CREATE INDEX IF NOT EXISTS idx_users_telegram_username ON users(telegram_username) WHERE telegram_username IS NOT NULL;")
         if "has_password" not in existing_cols:
             c.execute("ALTER TABLE users ADD COLUMN has_password INTEGER DEFAULT 0")
             c.execute("UPDATE users SET has_password = 1 WHERE password_hash != ''")
+
+        # Council Mandate #1: Sanitize duplicate telegram_user_ids before creating unique index
+        # Keep the earliest registered user id, set subsequent duplicates to NULL
+        c.execute("""
+            UPDATE users
+            SET telegram_user_id = NULL
+            WHERE id NOT IN (
+                SELECT MIN(id)
+                FROM users
+                WHERE telegram_user_id IS NOT NULL
+                GROUP BY telegram_user_id
+            )
+            AND telegram_user_id IS NOT NULL;
+        """)
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_telegram_user_id ON users(telegram_user_id) WHERE telegram_user_id IS NOT NULL;")
 
         # Seed default superuser 'admin' ('password')
         admin_row = c.execute("SELECT id FROM users WHERE username = 'admin'").fetchone()
@@ -233,6 +271,18 @@ def init_databases() -> None:
         conn.commit()
 
 
+def cleanup_expired_magic_requests(conn: sqlite3.Connection) -> int:
+    """
+    Council Mandate #2: Garbage-collects expired magic login requests older than 1 hour.
+    Uses parameterized Python datetime to eliminate SQLite timezone and format discrepancies.
+    """
+    cutoff = (datetime.now() - timedelta(hours=1)).isoformat()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM magic_login_requests WHERE expires_at < ?", (cutoff,))
+    conn.commit()
+    return cur.rowcount
+
+
 def get_or_create_telegram_user(
     conn: sqlite3.Connection,
     tg_id: int,
@@ -251,9 +301,15 @@ def get_or_create_telegram_user(
     if user:
         updates = []
         params = []
-        if first_name and user["display_name"] != first_name:
+        # Council Mandate #3: Display Name Immunity
+        # Only overwrite display_name with Telegram first_name if user is NOT yet onboarded.
+        if not bool(user["is_onboarded"]) and first_name and user["display_name"] != first_name:
             updates.append("display_name = ?")
             params.append(first_name)
+        # Keep telegram_username up to date if changed
+        if tg_username and user["telegram_username"] != tg_username:
+            updates.append("telegram_username = ?")
+            params.append(tg_username)
         if updates:
             params.append(user["id"])
             cursor.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
@@ -268,7 +324,10 @@ def get_or_create_telegram_user(
         (str(tg_id), f"tg_{tg_id}")
     ).fetchone()
     if web_pre_registered:
-        cursor.execute("UPDATE users SET telegram_user_id = ? WHERE id = ?", (tg_id, web_pre_registered["id"]))
+        cursor.execute(
+            "UPDATE users SET telegram_user_id = ?, telegram_username = coalesce(?, telegram_username) WHERE id = ?",
+            (tg_id, tg_username, web_pre_registered["id"])
+        )
         conn.commit()
         return cursor.execute("SELECT * FROM users WHERE id = ?", (web_pre_registered["id"],)).fetchone()
 
@@ -292,9 +351,9 @@ def get_or_create_telegram_user(
     cursor.execute("""
         INSERT INTO users (
             username, password_hash, salt, display_name, avatar_url,
-            access_level, grade, is_onboarded, is_superuser, telegram_user_id, has_password, created_at
-        ) VALUES (?, ?, ?, ?, '', ?, '', 0, ?, ?, 0, ?)
-    """, (candidate_username, pwd_hash, salt, disp_name, access_lvl, is_su, tg_id, now_str))
+            access_level, grade, is_onboarded, is_superuser, telegram_user_id, telegram_username, has_password, created_at
+        ) VALUES (?, ?, ?, ?, '', ?, '', 0, ?, ?, ?, 0, ?)
+    """, (candidate_username, pwd_hash, salt, disp_name, access_lvl, is_su, tg_id, tg_username, now_str))
     conn.commit()
 
     new_id = cursor.lastrowid

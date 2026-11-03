@@ -1,18 +1,17 @@
-# Task Checklist: RoutineHub Dynamic Jalali Engine & Smart Sorter Overhaul (v3.2.0-ratified)
+# Task Checklist: Bulletproof Authentication & Telegram Magic Login Engine (Module 8 - v3.4.0)
 
-## Phase 1: Dynamic Jalali Calendar Engine & Cache Invalidation
-- [x] Substep 1.1: Leap-Year Safe Live Shamsi Engine & Pure Date Shifter (`frontend/src/utils/shamsiCalendar.ts`)
-- [x] Substep 1.2: Dynamic Day Re-Anchoring & Cache Migration Engine (`frontend/src/store/useRoutineStore.ts`)
-- [x] Substep 1.3: Reactive RoutineHub Day Navigation Bar (`frontend/src/components/student/RoutineHub/RoutineHub.tsx`)
+## Phase 1: Database Schema Expansion & Cryptographic Validation Backend
+- [x] Substep 1.1: Database Migration, Index Sanitization & Identity Hardening (`backend/app/core/database.py`)
+- [x] Substep 1.2: Cryptographic Telegram WebApp `initData` HMAC-SHA256 Validator & Real-Time Username Checker (`backend/app/api/auth.py`)
 
-## Phase 2: Mobile Viewport & Liquid-Glass Popup Architecture
-- [x] Substep 2.1: React Portal & Mobile 100dvh Bottom Sheet Architecture (`frontend/src/components/student/RoutineHub/RoutineSortModal.tsx`)
-- [x] Substep 2.2: Liquid-Glass Aesthetic & Contrast Fallback (`frontend/src/components/student/RoutineHub/RoutineSortModal.tsx`)
+## Phase 2: Telegram Bot Magic Login Push & Approval Webhook
+- [x] Substep 2.1: Magic Login Backend Request & Atomic Polling Endpoints (`backend/app/api/auth.py`)
+- [x] Substep 2.2: Webhook Callback Query Approval Handler (`backend/app/bot/dispatcher.py`)
 
-## Phase 3: 4-Step Smart Sorter UI & Continuous Repetition Algorithm
-- [x] Substep 3.1: Mathematical Distribution Engine with Continuous Repetition & ID Safety (`frontend/src/store/useRoutineStore.ts`)
-- [x] Substep 3.2: Single-Page Streamlined Smart Sorter Form with Sticky Footer (`frontend/src/components/student/RoutineHub/RoutineSortModal.tsx`)
+## Phase 3: 1-to-1 Account Linking & Mandatory Credentials Setup
+- [x] Substep 3.1: Account Linking Endpoint, Brute-Force Shield & Idempotency (`backend/app/api/auth.py`)
+- [x] Substep 3.2: Mobile Ergonomic Onboarding with Single Password Field & Live Checker (`frontend/src/components/auth/OnboardingModal.tsx` & `backend/app/api/auth.py`)
 
-## Phase 4: Schedule-to-Routine Translator Engine & Future Manual Editing
-- [x] Substep 4.1: Translator Engine & Full-Payload Cloud Sync (`frontend/src/store/useRoutineStore.ts`)
-- [x] Substep 4.2: Future-Date Manual Editability & Dual Execution Lock (`frontend/src/components/student/RoutineHub/RoutineHub.tsx`)
+## Phase 4: Web Desktop Magic Login UI & Telegram Link Dialog in TWA
+- [x] Substep 4.1: Desktop LoginPad Magic Telegram Login UI with Anti-Panic Circular Timer (`frontend/src/components/auth/LoginPad.tsx`)
+- [x] Substep 4.2: TWA Dual Start Cards & Profile Telegram Status (`frontend/src/components/layout/UserProfileMenu.tsx` & `LoginPad.tsx`)

@@ -16,8 +16,9 @@ interface AuthState {
   loginWithTelegram: () => Promise<boolean>;
   loginWithCredentials: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   registerWithCredentials: (username: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
-  completeOnboarding: (displayName: string, grade: string) => Promise<void>;
+  completeOnboarding: (displayName: string, grade: string, username?: string, password?: string) => Promise<void>;
   setUserPasswordStatus: (hasPassword: boolean) => void;
+  unlinkTelegram: () => Promise<boolean>;
   logout: () => Promise<void>;
 }
 
@@ -188,13 +189,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  completeOnboarding: async (displayName: string, grade: string) => {
+  completeOnboarding: async (displayName: string, grade: string, username?: string, password?: string) => {
     set({ isLoading: true });
     try {
-      const res = await api.post<{ status: string; user: User }>('/auth/onboarding', {
+      const payload: Record<string, any> = {
         display_name: displayName,
         grade: grade,
-      });
+      };
+      if (username) payload.username = username;
+      if (password) payload.password = password;
+
+      const res = await api.post<{ success: boolean; user: User }>('/auth/onboarding', payload);
       if (res && res.user) {
         set({ user: res.user, isLoading: false });
         useCourseStore.getState().fetchCourses();
@@ -209,6 +214,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const currentUser = get().user;
     if (currentUser) {
       set({ user: { ...currentUser, has_password: hasPassword } });
+    }
+  },
+
+  unlinkTelegram: async () => {
+    set({ isLoading: true });
+    try {
+      await api.post('/auth/unlink-telegram');
+      const currentUser = get().user;
+      if (currentUser) {
+        set({ user: { ...currentUser, telegram_user_id: null, telegram_username: null }, isLoading: false });
+      } else {
+        set({ isLoading: false });
+      }
+      return true;
+    } catch (e) {
+      set({ isLoading: false });
+      throw e;
     }
   },
 

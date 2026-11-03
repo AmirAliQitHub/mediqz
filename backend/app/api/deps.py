@@ -41,7 +41,7 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> Dict:
                 pass
 
         user = conn.execute(
-            "SELECT id, username, display_name, avatar_url, access_level, grade, is_onboarded, is_superuser, telegram_user_id, has_password FROM users WHERE id = ?",
+            "SELECT id, username, display_name, avatar_url, access_level, grade, is_onboarded, is_superuser, telegram_user_id, telegram_username, has_password FROM users WHERE id = ?",
             (session["user_id"],)
         ).fetchone()
 
