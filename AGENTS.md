@@ -1,11 +1,19 @@
 # Alqualite CourseBox (Mediqz) - Architecture & Directory Map
-**Current Milestone:** `v3.2.0-ratified` (RoutineHub Jalali Engine & Smart Sorter Overhaul Ratified)
+**Current Milestone:** `v3.3.0-deployed` (Dedicated Production Cloud Server Deployed & Operational)
 
-## Tech Stack
+## Tech Stack & Production Deployment
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Zustand, Lucide React
-- **Backend**: FastAPI (Python 3.11), Uvicorn, SQLite WAL (`userdata.db`)
-- **Telegram Integration**: Python Telegram Bot, Webhook (`/api/telegram/webhook`), TWA
-- **Deployment**: Multi-stage Docker, Render / Cloudflare / Vercel SPA serving
+  - Production build served by Nginx: `/var/www/mediqz/frontend/dist`
+- **Backend**: FastAPI (Python 3.10+), Uvicorn, SQLite WAL (`userdata.db`, `exams.db`)
+  - Running as systemd daemon: `mediqz.service` on `127.0.0.1:8000`
+- **Telegram Integration**: Python Telegram Bot (`@MediqzBot`), Webhook (`/api/telegram/webhook`), TWA
+- **Live Production URL**: `https://195-248-241-36.sslip.io` (Automated Let's Encrypt SSL)
+- **Server Infrastructure**:
+  - Provider: ParsPack Cloud Server Germany (`deCloud2` - 1 vCore, 2 GB RAM + 2 GB Swap)
+  - IPv4: `195.248.241.36` (resolves to `195-248-241-36.sslip.io`)
+  - Reverse Proxy: Nginx (ports 80 & 443, SSL termination, Gzip, SPA fallback)
+  - Firewall: UFW active (ports 22, 80, 443 only)
+  - Database Backups: Nightly atomic cronjob at 03:00 UTC (`/usr/local/bin/backup-mediqz.sh` -> `/var/backups/mediqz/`)
 
 ## Directory Structure
 - `backend/app/`: FastAPI application endpoints, models, routers, and bot logic
