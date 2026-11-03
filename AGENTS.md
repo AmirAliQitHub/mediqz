@@ -1,5 +1,5 @@
 # Alqualite CourseBox (Mediqz) - Architecture & Directory Map
-**Current Milestone:** `v3.3.0-deployed` (Dedicated Production Cloud Server Deployed & Operational)
+**Current Milestone:** `v3.4.0-deployed` (Bulletproof Authentication & Telegram Magic Login Engine Operational on Cloud Production)
 
 ## Tech Stack & Production Deployment
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Zustand, Lucide React
@@ -7,6 +7,8 @@
 - **Backend**: FastAPI (Python 3.10+), Uvicorn, SQLite WAL (`userdata.db`, `exams.db`)
   - Running as systemd daemon: `mediqz.service` on `127.0.0.1:8000`
 - **Telegram Integration**: Python Telegram Bot (`@MediqzBot`), Webhook (`/api/telegram/webhook`), TWA
+  - Telegram Magic Login: zero-password Bot push verification with atomic token issuance (`POST /api/auth/magic-login/request`, `GET /api/auth/magic-login/poll`)
+  - TWA Dual Start Cards: quick registration vs 1-to-1 desktop account linking (`POST /api/auth/link-telegram`)
 - **Live Production URL**: `https://195-248-241-36.sslip.io` (Automated Let's Encrypt SSL)
 - **Server Infrastructure**:
   - Provider: ParsPack Cloud Server Germany (`deCloud2` - 1 vCore, 2 GB RAM + 2 GB Swap)
@@ -21,12 +23,13 @@
   - `backend/app/bot/`: Repo-internal `@MediqzBot` handlers and webhook routing
   - `backend/app/core/`: Database connections, auth tokens, and SQLite WAL settings
 - `frontend/src/`: React 18 SPA application (components, store, styles)
-  - `frontend/src/components/layout/`: Top bar, adaptive bottom capsule, user profile menu
+  - `frontend/src/components/auth/`: `LoginPad.tsx` (Magic Login, TWA Dual Start), `OnboardingModal.tsx` (tactile eye toggle, live username checker)
+  - `frontend/src/components/layout/`: Top bar, adaptive bottom capsule, user profile menu (`UserProfileMenu.tsx` with 2-step unlink dialog)
   - `frontend/src/components/student/`: RoutineHub, CoursePartsView, CoursePlayer, CourseMistakesModal
   - `frontend/src/store/`: Zustand state stores (`useAuthStore`, `useRoutineStore`, `useCourseStore`)
   - `frontend/src/utils/`: Native Iranian Shamsi calendar utility (`shamsiCalendar.ts`)
-- `userdata.db`: Unified SQLite database (users, auth, Leitner cards, review logs, `eu_activity_logs`, `user_routines`)
-- `scripts/`: Production build, test runner, process checking (`check_processes.sh`), and mobile TWA verification (`verify_mobile_twa.py`)
-- `tests/`: Comprehensive test suite (66 tests covering auth, WAL concurrency, webhook HMAC, and full master integration)
+- `userdata.db`: Unified SQLite database (`users`, `sessions`, `magic_login_requests`, Leitner cards, review logs, `eu_activity_logs`, `user_routines`)
+- `scripts/`: Production build, test runner, remote execution helper (`scripts/remote_exec.py`), process checking (`check_processes.sh`), and mobile TWA verification (`verify_mobile_twa.py`)
+- `tests/`: Comprehensive test suite (67 tests covering auth, WAL concurrency, webhook HMAC, and full master integration)
 - `.agents/rules/`: Supreme Council Governance (`supreme-council-governance.md`) and operational laws
-- `docs/`: Master verification artifacts and Supreme Council audit reports (`final_supreme_council_audit_report.md`)
+- `docs/`: Master verification artifacts and Supreme Council audit reports (`final_supreme_council_audit_report.md`, `docs/audit_artifacts/`)
