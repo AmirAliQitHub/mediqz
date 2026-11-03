@@ -20,12 +20,14 @@
 - [x] Step 4.2: Liquid-Glass Top Bar & User Name Display (`CourseBoxTopBar.tsx`, `UserProfileMenu.tsx`)
 - [x] Step 4.3: Thinner Adaptive Floating Bottom Capsule (`MobileBottomNav.tsx`)
 
-## Module 5: Generic CourseView, Mobile Keyboard Fix, "Incorrects Hub" & Duolingo Loop
+## Module 5: Auto Routine Sorter Overhaul & Study Player Mastery Loop (v3.1.0-council)
+- [x] Substep 5.0.1: Pedagogical Distribution Engine & Store Integration (`useRoutineStore.ts`)
+- [x] Substep 5.0.2: RoutineSortModal UI & Telemetry Overhaul (`RoutineSortModal.tsx`)
 - [x] Step 5.1: Mobile Study Player Viewport Flush Top & Virtual Keyboard Fix (`CoursePlayer.tsx`)
-- [ ] Step 5.2: "View Answer" = `null` First-Pass Outcome Rule (`FillInTheBlank.tsx`, `LearnBox.tsx`)
-- [ ] Step 5.3: In-Memory Duolingo End-of-Part Redemption Loop (`useCourseStore.ts`, `CoursePlayer.tsx`)
-- [ ] Step 5.4: Generic Course "Incorrects & Skipped Hub" (`CoursePartsView.tsx`, `CourseMistakesModal.tsx`)
+- [x] Step 5.2: "View Answer" = `null` First-Pass Outcome Rule (`FillInTheBlank.tsx`, `LearnBox.tsx`)
+- [x] Step 5.3: In-Memory Duolingo End-of-Part Redemption Loop (`useCourseStore.ts`, `CoursePlayer.tsx`)
+- [x] Step 5.4: Generic Course "Incorrects & Skipped Hub" (`CoursePartsView.tsx`, `CourseMistakesModal.tsx`)
 
 ## Module 6: Comprehensive Telegram Bot & Mini App Audit & Product Roadmap
-- [ ] Step 6.1: Full-Suite Verification & Browser Automated E2E Testing (`verify_mobile_twa.py`, `test_full_suite.py`)
-- [ ] Step 6.2: Supreme Council Final Audit & Strategic Product Roadmap (`final_supreme_council_audit_report.md`, `AGENTS.md`)
+- [x] Step 6.1: Full-Suite Verification & Browser Automated E2E Testing (`verify_mobile_twa.py`, `test_full_suite.py`)
+- [x] Step 6.2: Supreme Council Final Audit & Strategic Product Roadmap (`final_supreme_council_audit_report.md`, `AGENTS.md`)

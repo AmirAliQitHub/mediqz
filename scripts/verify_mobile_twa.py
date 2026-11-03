@@ -221,7 +221,10 @@ def main():
             "  return false;"
             "})()"
         )
-        run_cmd(f"{AGENT_BROWSER} eval {shlex.quote(click_course_js)}")
+        click_course_res = run_cmd(f"{AGENT_BROWSER} eval {shlex.quote(click_course_js)}")
+        course_clicked = click_course_res.stdout.strip().strip('"').lower()
+        print(f"📊 Click course result: {course_clicked}")
+        assert course_clicked == "true", f"Failed to navigate into course view, click returned: {course_clicked}"
         run_cmd(f"{AGENT_BROWSER} wait 2000")
 
         # Now click first part to open Course Player
@@ -238,7 +241,10 @@ def main():
             "  return false;"
             "})()"
         )
-        run_cmd(f"{AGENT_BROWSER} eval {shlex.quote(click_part_js)}")
+        click_part_res = run_cmd(f"{AGENT_BROWSER} eval {shlex.quote(click_part_js)}")
+        part_clicked = click_part_res.stdout.strip().strip('"').lower()
+        print(f"📊 Click part result: {part_clicked}")
+        assert part_clicked == "true", f"Failed to navigate into course player, click returned: {part_clicked}"
         run_cmd(f"{AGENT_BROWSER} wait 2000")
 
         # Measure Layout in Course Player View

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { EU, Part, Course, CourseSummary } from '../types';
 import { useCourseStore } from './useCourseStore';
 import { useAuthStore } from './useAuthStore';
+import { api } from '../services/api';
 import {
   generateInitialShamsiDays,
   getShamsiDateInfo,
@@ -9,6 +10,132 @@ import {
   getCurrentShamsiDateString,
   ShamsiDateInfo
 } from '../utils/shamsiCalendar';
+
+export type RoutineSortMode = 'even' | 'leitner' | 'cram' | 'friday_buffer';
+export type RoutineApplyStrategy = 'merge' | 'replace_course' | 'replace_all';
+
+export interface DistributeCoursePartsOptions {
+  courseId: string;
+  courseTitle: string;
+  parts: Array<{ part_id: string; title: string; eus?: any[] }>;
+  sortMode?: RoutineSortMode;
+  partsPerDay?: number;
+  durationDays?: number;
+  strategy?: RoutineApplyStrategy;
+  startDayNumber?: number;
+}
+
+export interface CourseDistributionPreview {
+  totalParts: number;
+  activeDaysCount: number;
+  totalDaysCount: number;
+  baseQuota: number;
+  remainder: number;
+  dailyBreakdown: Array<{ dayNumber: number; count: number; isFriday: boolean }>;
+}
+
+export function previewCourseDistribution(
+  partsCount: number,
+  mode: RoutineSortMode,
+  partsPerDay: number,
+  durationDays: number,
+  startStudyDate: Date = getEffectiveStudyDate()
+): CourseDistributionPreview {
+  const N = Math.max(0, partsCount);
+  const pPerDay = Math.max(1, partsPerDay);
+
+  let totalDays = Math.max(durationDays, 7);
+  if (mode === 'friday_buffer') {
+    const minActive = Math.max(1, Math.ceil(N / pPerDay));
+    let activeFound = 0;
+    let dIdx = 0;
+    while (activeFound < minActive || dIdx < durationDays) {
+      const d = new Date(startStudyDate);
+      d.setDate(startStudyDate.getDate() + dIdx);
+      const isFriday = d.getDay() === 5;
+      if (!isFriday) activeFound++;
+      dIdx++;
+    }
+    totalDays = dIdx;
+  } else {
+    totalDays = Math.max(durationDays, Math.max(1, Math.ceil(N / pPerDay)));
+  }
+
+  const dailyBreakdown: Array<{ dayNumber: number; count: number; isFriday: boolean }> = [];
+  for (let i = 0; i < totalDays; i++) {
+    const d = new Date(startStudyDate);
+    d.setDate(startStudyDate.getDate() + i);
+    dailyBreakdown.push({
+      dayNumber: i + 1,
+      count: 0,
+      isFriday: d.getDay() === 5,
+    });
+  }
+
+  const activeDays = dailyBreakdown.filter((d) => (mode === 'friday_buffer' ? !d.isFriday : true));
+  const D = activeDays.length;
+
+  if (D > 0 && N > 0) {
+    if (mode === 'cram') {
+      if (D <= 1) {
+        activeDays[0].count = N;
+      } else {
+        const D1 = Math.max(1, Math.ceil(D / 2));
+        const D2 = D - D1;
+        const N1 = Math.min(N, Math.ceil(0.65 * N));
+        const N2 = N - N1;
+        const base1 = Math.floor(N1 / D1);
+        const rem1 = N1 % D1;
+        for (let i = 0; i < D1; i++) activeDays[i].count = base1 + (i < rem1 ? 1 : 0);
+        const base2 = Math.floor(N2 / D2);
+        const rem2 = N2 % D2;
+        for (let i = 0; i < D2; i++) activeDays[D1 + i].count = base2 + (i < rem2 ? 1 : 0);
+      }
+    } else if (mode === 'leitner') {
+      if (D <= 1) {
+        activeDays[0].count = N;
+      } else {
+        const weights = activeDays.map((_, idx) => (idx % 2 === 0 ? 2 : 1));
+        const totalW = weights.reduce((a, b) => a + b, 0);
+        const baseUnit = Math.floor(N / totalW);
+        let assigned = 0;
+        for (let i = 0; i < D; i++) {
+          activeDays[i].count = weights[i] * baseUnit;
+          assigned += activeDays[i].count;
+        }
+        let rem = N - assigned;
+        for (let i = 0; i < D && rem > 0; i++) {
+          if (weights[i] === 2) {
+            activeDays[i].count++;
+            rem--;
+          }
+        }
+        for (let i = 0; i < D && rem > 0; i++) {
+          activeDays[i].count++;
+          rem--;
+        }
+      }
+    } else {
+      const baseQuota = Math.floor(N / D);
+      const rem = N % D;
+      for (let i = 0; i < D; i++) {
+        activeDays[i].count = baseQuota + (i < rem ? 1 : 0);
+      }
+    }
+  }
+
+  const baseQuota = D > 0 ? Math.floor(N / D) : 0;
+  const remainder = D > 0 ? N % D : 0;
+
+  return {
+    totalParts: N,
+    activeDaysCount: D,
+    totalDaysCount: totalDays,
+    baseQuota,
+    remainder,
+    dailyBreakdown,
+  };
+}
 
 export interface RoutineItem {
   id: string;
@@ -63,6 +190,7 @@ interface RoutineState {
   removeItemFromDay: (dayNumber: number, itemId: string) => void;
   toggleItemCompleted: (dayNumber: number, itemId: string) => void;
   generateLinearRoutine: (courses: CourseSummary[], partsPerDay?: number) => Promise<void>;
+  distributeCourseParts: (options: DistributeCoursePartsOptions) => Promise<{ distributedCount: number; daysCount: number }>;
   startAutomaticRoutine: (dayNumber?: number) => Promise<boolean>;
   onPartFinishedInRoutine: () => boolean; // returns true if next part started, false if done
   recordMistake: (mistake: Omit<MistakeRecord, 'id' | 'date_str' | 'timestamp'>) => void;
@@ -275,6 +403,293 @@ export const useRoutineStore = create<RoutineState>((set, get) => {
 
       set({ days: newDays, currentDayNumber: 1 });
       persist(newDays, get().mistakes, 1);
+    },
+
+    distributeCourseParts: async (options) => {
+      const {
+        courseId,
+        courseTitle,
+        parts,
+        sortMode = 'friday_buffer',
+        partsPerDay = 2,
+        durationDays = 7,
+        strategy = 'merge',
+        startDayNumber = get().currentDayNumber || 1,
+      } = options;
+
+      if (!parts || parts.length === 0) {
+        return { distributedCount: 0, daysCount: get().days.length };
+      }
+
+      const startStudyDate = getEffectiveStudyDate();
+      let currentDays: RoutineDay[] = get().days.map((d) => ({
+        ...d,
+        items: [...d.items],
+      }));
+
+      // 1. Filter / Prepare target parts according to strategy
+      let targetParts = [...parts];
+
+      if (strategy === 'replace_all') {
+        currentDays = [];
+        const pPerDay = Math.max(1, partsPerDay);
+        let dayCount = Math.max(durationDays, 7);
+
+        if (sortMode === 'friday_buffer') {
+          const minActiveDays = Math.max(1, Math.ceil(parts.length / pPerDay));
+          let activeFound = 0;
+          let dIdx = 0;
+          while (activeFound < minActiveDays || dIdx < durationDays) {
+            const d = new Date(startStudyDate);
+            d.setDate(startStudyDate.getDate() + dIdx);
+            if (d.getDay() !== 5) activeFound++;
+            dIdx++;
+          }
+          dayCount = dIdx;
+        } else {
+          dayCount = Math.max(durationDays, Math.max(1, Math.ceil(parts.length / pPerDay)));
+        }
+
+        for (let dayOffset = 0; dayOffset < dayCount; dayOffset++) {
+          const d = new Date(startStudyDate);
+          d.setDate(startStudyDate.getDate() + dayOffset);
+          const sInfo = getShamsiDateInfo(d, dayOffset + 1);
+          currentDays.push({
+            day_number: dayOffset + 1,
+            title: sInfo.title,
+            shamsi_date: sInfo.shamsi_date,
+            weekday_name: sInfo.weekday_name,
+            day_str: sInfo.day_str,
+            month_name: sInfo.month_name,
+            is_today: sInfo.is_today,
+            is_friday: sInfo.is_friday,
+            is_future: sInfo.is_future,
+            items: [],
+          });
+        }
+      } else if (strategy === 'replace_course') {
+        // Strip only items belonging to this specific course, preserving other courses
+        currentDays = currentDays.map((d) => ({
+          ...d,
+          items: d.items.filter((it) => it.course_id !== courseId),
+        }));
+      } else {
+        // 'merge' (default): De-duplicate! Exclude parts that are already scheduled in ANY day
+        const alreadyScheduledPartIds = new Set<string>();
+        currentDays.forEach((d) => {
+          d.items.forEach((it) => {
+            if (it.course_id === courseId) {
+              alreadyScheduledPartIds.add(it.part_id);
+            }
+          });
+        });
+        targetParts = parts.filter((p) => !alreadyScheduledPartIds.has(p.part_id));
+        if (targetParts.length === 0) {
+          return { distributedCount: 0, daysCount: currentDays.length };
+        }
+      }
+
+      const N = targetParts.length;
+
+      // Helper to dynamically ensure days exist when extending schedule
+      const ensureDayExists = (dayNum: number): RoutineDay => {
+        let found = currentDays.find((d) => d.day_number === dayNum);
+        if (!found) {
+          const d = new Date(startStudyDate);
+          d.setDate(startStudyDate.getDate() + (dayNum - 1));
+          const sInfo = getShamsiDateInfo(d, dayNum);
+          found = {
+            day_number: dayNum,
+            title: sInfo.title,
+            shamsi_date: sInfo.shamsi_date,
+            weekday_name: sInfo.weekday_name,
+            day_str: sInfo.day_str,
+            month_name: sInfo.month_name,
+            is_today: sInfo.is_today,
+            is_friday: sInfo.is_friday,
+            is_future: sInfo.is_future,
+            items: [],
+          };
+          currentDays.push(found);
+          currentDays.sort((a, b) => a.day_number - b.day_number);
+        }
+        return found;
+      };
+
+      // 2. Mathematical Allocation
+      if (strategy === 'replace_all') {
+        const activeDays = currentDays.filter((d) => {
+          if (sortMode === 'friday_buffer') return !d.is_friday;
+          return true;
+        });
+
+        const distributionDays = activeDays.length > 0 ? activeDays : currentDays;
+        const D = distributionDays.length;
+        const dayQuotas: number[] = new Array(D).fill(0);
+
+        if (sortMode === 'cram') {
+          if (D <= 1) {
+            dayQuotas[0] = N;
+          } else {
+            // Exam-Cram Frontloading: First half gets Math.ceil(0.65 * N)
+            const D1 = Math.max(1, Math.ceil(D / 2));
+            const D2 = D - D1;
+            const N1 = Math.min(N, Math.ceil(0.65 * N));
+            const N2 = N - N1;
+
+            const base1 = Math.floor(N1 / D1);
+            const rem1 = N1 % D1;
+            for (let i = 0; i < D1; i++) {
+              dayQuotas[i] = base1 + (i < rem1 ? 1 : 0);
+            }
+
+            const base2 = Math.floor(N2 / D2);
+            const rem2 = N2 % D2;
+            for (let i = 0; i < D2; i++) {
+              dayQuotas[D1 + i] = base2 + (i < rem2 ? 1 : 0);
+            }
+          }
+        } else if (sortMode === 'leitner') {
+          if (D <= 1) {
+            dayQuotas[0] = N;
+          } else {
+            // Weighted 2:1 for Odd (New) vs Even (Review) days
+            const weights = distributionDays.map((_, idx) => (idx % 2 === 0 ? 2 : 1));
+            const totalW = weights.reduce((a, b) => a + b, 0);
+            const baseUnit = Math.floor(N / totalW);
+            let assigned = 0;
+            for (let i = 0; i < D; i++) {
+              dayQuotas[i] = weights[i] * baseUnit;
+              assigned += dayQuotas[i];
+            }
+            let rem = N - assigned;
+            for (let i = 0; i < D && rem > 0; i++) {
+              if (weights[i] === 2) {
+                dayQuotas[i]++;
+                rem--;
+              }
+            }
+            for (let i = 0; i < D && rem > 0; i++) {
+              dayQuotas[i]++;
+              rem--;
+            }
+          }
+        } else {
+          // Largest Remainder Allocation: base = floor(N / D), rem = N % D
+          const baseQuota = Math.floor(N / D);
+          const rem = N % D;
+          for (let i = 0; i < D; i++) {
+            dayQuotas[i] = baseQuota + (i < rem ? 1 : 0);
+          }
+        }
+
+        let partIdx = 0;
+        for (let i = 0; i < distributionDays.length; i++) {
+          const targetDay = distributionDays[i];
+          const countForThisDay = dayQuotas[i];
+          for (let c = 0; c < countForThisDay && partIdx < N; c++) {
+            const pt = targetParts[partIdx++];
+            targetDay.items.push({
+              id: `rt_${Date.now()}_${targetDay.day_number}_${partIdx}`,
+              course_id: courseId,
+              course_title: courseTitle,
+              part_id: pt.part_id,
+              part_title: pt.title,
+              slide_count: pt.eus?.length || 0,
+              completed: false,
+            });
+          }
+        }
+
+        // Condense ghost days if N is smaller than duration and trailing days are completely empty
+        while (
+          currentDays.length > 7 &&
+          currentDays[currentDays.length - 1].items.length === 0 &&
+          currentDays.length > durationDays
+        ) {
+          currentDays.pop();
+        }
+      } else {
+        // 'merge' or 'replace_course': Non-destructive slotting into existing/appended days
+        let partIdx = 0;
+        let dayCursor = startDayNumber;
+
+        while (partIdx < N) {
+          const curDay = ensureDayExists(dayCursor);
+
+          // Check if Friday buffer applies
+          if (sortMode === 'friday_buffer' && curDay.is_friday) {
+            dayCursor++;
+            continue;
+          }
+
+          let quota = partsPerDay;
+          if (sortMode === 'leitner') {
+            quota = curDay.day_number % 2 === 0 ? Math.max(1, Math.floor(partsPerDay / 2)) : Math.max(1, partsPerDay);
+          } else if (sortMode === 'cram') {
+            const isEarlyDay = (dayCursor - startDayNumber) < Math.max(3, Math.ceil(durationDays / 2));
+            quota = isEarlyDay ? Math.ceil(partsPerDay * 1.5) : Math.max(1, Math.floor(partsPerDay * 0.75));
+          }
+
+          const existingOfThisCourse = curDay.items.filter((it) => it.course_id === courseId).length;
+          const slotsAvailable = Math.max(0, quota - existingOfThisCourse);
+
+          // Defect 1.3 fix: If no slots available, advance day cursor without forcing parts
+          if (slotsAvailable <= 0) {
+            dayCursor++;
+            continue;
+          }
+
+          const toAdd = Math.min(slotsAvailable, N - partIdx);
+          for (let k = 0; k < toAdd && partIdx < N; k++) {
+            const pt = targetParts[partIdx++];
+            curDay.items.push({
+              id: `rt_${Date.now()}_${curDay.day_number}_${partIdx}`,
+              course_id: courseId,
+              course_title: courseTitle,
+              part_id: pt.part_id,
+              part_title: pt.title,
+              slide_count: pt.eus?.length || 0,
+              completed: false,
+            });
+          }
+
+          dayCursor++;
+        }
+      }
+
+      // Defect 1.5 fix: Only reset to 1 in replace_all, preserve active day in merge / replace_course
+      const targetCurrentDay = strategy === 'replace_all' ? 1 : (get().currentDayNumber || 1);
+      set({ days: currentDays, currentDayNumber: targetCurrentDay });
+      persist(currentDays, get().mistakes, targetCurrentDay);
+
+      // Requirement 2.1: Non-blocking fail-silent cloud sync
+      const user = useAuthStore.getState().user;
+      if (user?.id) {
+        try {
+          const syncRoutines = [];
+          for (const d of currentDays) {
+            for (let idx = 0; idx < d.items.length; idx++) {
+              const it = d.items[idx];
+              syncRoutines.push({
+                shamsi_date: d.shamsi_date,
+                course_id: it.course_id,
+                course_title: it.course_title,
+                part_id: it.part_id,
+                part_title: it.part_title,
+                slide_count: it.slide_count,
+                completed: it.completed,
+                order_idx: idx,
+              });
+            }
+          }
+          void api.post('/reviews/routines', { routines: syncRoutines }).catch(() => {});
+        } catch {
+          // Fail-silent
+        }
+      }
+
+      return { distributedCount: N, daysCount: currentDays.length };
     },
 
     startAutomaticRoutine: async (dayNumber) => {

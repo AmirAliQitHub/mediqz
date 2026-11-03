@@ -1,12 +1,22 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { EU } from '../../../types';
+import { useCourseStore } from '../../../store/useCourseStore';
 
 interface Props {
- eu: EU;
+  eu: EU;
 }
 
 export const LearnBox: React.FC<Props> = ({ eu }) => {
   const p = eu.payload || {};
+  const { recordEUResult } = useCourseStore();
+
+  useEffect(() => {
+    recordEUResult(eu.id, {
+      status: 'viewed',
+      user_answer: null,
+      correct_answer: null,
+    });
+  }, [eu.id, recordEUResult]);
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4 sm:p-8 rounded-2xl sm:rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/90 shadow-liquid eu-surface text-right flex flex-col gap-3 sm:gap-4 animate-fadeIn">

@@ -10,7 +10,7 @@ export interface EUResult {
   topic_tag: string;
   title: string;
   is_interactive: boolean;
-  status: 'correct' | 'wrong' | 'viewed' | 'unanswered';
+  status: 'correct' | 'wrong' | 'viewed' | 'unanswered' | 'null';
   user_answer?: string | null;
   correct_answer?: string | null;
 }
@@ -45,6 +45,10 @@ interface CourseState {
   autoReviewIndex: number;
   autoReviewActive: boolean;
   showContextSentence: boolean;
+  isRedemptionMode: boolean;
+  redemptionQueue: EU[];
+  redemptionIndex: number;
+  showRedemptionInterstitial: boolean;
 
   fetchCourses: (includeDev?: boolean) => Promise<void>;
   selectCourse: (courseId: string) => Promise<void>;
@@ -61,6 +65,9 @@ interface CourseState {
   prevSlide: () => void;
   recordEUResult: (euId: string, result: Partial<EUResult>) => void;
   markCurrentPartDone: () => void;
+  dismissRedemptionInterstitial: () => void;
+  nextRedemptionSlide: () => void;
+  resolveRedemptionSlide: (euId: string) => void;
   resetPlayer: () => void;
 }
 
@@ -76,6 +83,10 @@ export const useCourseStore = create<CourseState>((set, get) => ({
   autoReviewQueue: [],
   autoReviewIndex: 0,
   autoReviewActive: false,
+  isRedemptionMode: false,
+  redemptionQueue: [],
+  redemptionIndex: 0,
+  showRedemptionInterstitial: false,
   showContextSentence: typeof window !== 'undefined' ? localStorage.getItem('alqualite_show_context_sentence') !== 'false' : true,
 
   setShowContextSentence: (show: boolean) => {
@@ -156,6 +167,10 @@ export const useCourseStore = create<CourseState>((set, get) => ({
       currentSlideIndex: 0,
       euResults: initialResults,
       isPartCompleted: false,
+      isRedemptionMode: false,
+      redemptionQueue: [],
+      redemptionIndex: 0,
+      showRedemptionInterstitial: false,
       reviewContext: null,
     });
   },
@@ -208,11 +223,21 @@ export const useCourseStore = create<CourseState>((set, get) => ({
       currentSlideIndex: 0,
       euResults: initialResults,
       isPartCompleted: false,
+      isRedemptionMode: false,
+      redemptionQueue: [],
+      redemptionIndex: 0,
+      showRedemptionInterstitial: false,
       reviewContext: context,
     });
   },
 
   nextSlide: () => {
+    const { isRedemptionMode } = get();
+    if (isRedemptionMode) {
+      get().nextRedemptionSlide();
+      return;
+    }
+
     const { activePart, currentSlideIndex } = get();
     if (!activePart) return;
     if (currentSlideIndex < activePart.eus.length - 1) {
@@ -223,14 +248,32 @@ export const useCourseStore = create<CourseState>((set, get) => ({
   },
 
   prevSlide: () => {
-    const { currentSlideIndex } = get();
+    const { isRedemptionMode, redemptionQueue, redemptionIndex, currentSlideIndex } = get();
+    if (isRedemptionMode) {
+      if (redemptionQueue.length > 0) {
+        const prevIdx = redemptionIndex > 0 ? redemptionIndex - 1 : redemptionQueue.length - 1;
+        set({ redemptionIndex: prevIdx });
+      }
+      return;
+    }
+
     if (currentSlideIndex > 0) {
       set({ currentSlideIndex: currentSlideIndex - 1 });
     }
   },
 
   recordEUResult: (euId, result) => {
-    const { euResults, selectedCourse, activePart } = get();
+    const { euResults, selectedCourse, activePart, isRedemptionMode } = get();
+
+    // STRICT DATABASE IMMUTABILITY LAW:
+    // If in redemption mode, do NOT log to mistakes or write to SQLite eu_activity_logs!
+    if (isRedemptionMode || (result as any).isRedemption) {
+      if (result.status === 'correct') {
+        get().resolveRedemptionSlide(euId);
+      }
+      return;
+    }
+
     const existing = euResults[euId] || {
       eu_id: euId,
       order: 1,
@@ -247,7 +290,7 @@ export const useCourseStore = create<CourseState>((set, get) => ({
       },
     });
 
-    // If answer is wrong, automatically record into RoutineHub's mistakes hunter
+    // If answer is wrong, automatically record into RoutineHub's mistakes hunter (first pass ONLY)
     if (result.status === 'wrong') {
       try {
         const currentEu = activePart?.eus.find((e) => e.id === euId);
@@ -284,7 +327,73 @@ export const useCourseStore = create<CourseState>((set, get) => ({
   },
 
   markCurrentPartDone: () => {
-    set({ isPartCompleted: true });
+    const { activePart, euResults } = get();
+    if (!activePart) {
+      set({ isPartCompleted: true });
+      return;
+    }
+
+    // Duolingo Redemption Check: Collect all interactive slides where status === 'wrong' or 'null'
+    const unmastered = activePart.eus.filter((eu) => {
+      if (eu.type === 'learn_box') return false;
+      const res = euResults[eu.id];
+      return res?.status === 'wrong' || res?.status === 'null';
+    });
+
+    if (unmastered.length > 0) {
+      set({
+        isRedemptionMode: true,
+        redemptionQueue: unmastered,
+        redemptionIndex: 0,
+        showRedemptionInterstitial: true,
+      });
+    } else {
+      set({
+        isPartCompleted: true,
+        isRedemptionMode: false,
+        redemptionQueue: [],
+        redemptionIndex: 0,
+        showRedemptionInterstitial: false,
+      });
+    }
+  },
+
+  dismissRedemptionInterstitial: () => {
+    set({ showRedemptionInterstitial: false });
+  },
+
+  nextRedemptionSlide: () => {
+    const { redemptionQueue, redemptionIndex } = get();
+    if (redemptionQueue.length === 0) {
+      set({
+        isPartCompleted: true,
+        isRedemptionMode: false,
+        showRedemptionInterstitial: false,
+      });
+      return;
+    }
+    const nextIdx = (redemptionIndex + 1) % redemptionQueue.length;
+    set({ redemptionIndex: nextIdx });
+  },
+
+  resolveRedemptionSlide: (euId: string) => {
+    const { redemptionQueue, redemptionIndex } = get();
+    const remaining = redemptionQueue.filter((e) => e.id !== euId);
+    if (remaining.length === 0) {
+      set({
+        redemptionQueue: [],
+        redemptionIndex: 0,
+        isRedemptionMode: false,
+        showRedemptionInterstitial: false,
+        isPartCompleted: true,
+      });
+    } else {
+      const nextIdx = redemptionIndex >= remaining.length ? 0 : redemptionIndex;
+      set({
+        redemptionQueue: remaining,
+        redemptionIndex: nextIdx,
+      });
+    }
   },
 
   resetPlayer: () => {
@@ -293,6 +402,10 @@ export const useCourseStore = create<CourseState>((set, get) => ({
       currentSlideIndex: 0,
       euResults: {},
       isPartCompleted: false,
+      isRedemptionMode: false,
+      redemptionQueue: [],
+      redemptionIndex: 0,
+      showRedemptionInterstitial: false,
       reviewContext: null,
     });
   },

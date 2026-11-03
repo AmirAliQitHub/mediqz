@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlignLeft, Type, ArrowRight, LogOut } from 'lucide-react';
+import { AlignLeft, Type, ArrowRight, LogOut, Sparkles } from 'lucide-react';
 import { useCourseStore } from '../../../store/useCourseStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { FillInTheBlank } from './FillInTheBlank';
@@ -9,6 +9,11 @@ import { LearnBox } from './LearnBox';
 import { LiteraryMatrix } from './LiteraryMatrix';
 import { CongratsView } from '../CongratsView';
 import { api } from '../../../services/api';
+
+const toFa = (num: number | string): string => {
+  const faDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+  return String(num).replace(/\d/g, (w) => faDigits[parseInt(w, 10)]);
+};
 
 export const CoursePlayer: React.FC = () => {
   const {
@@ -23,7 +28,12 @@ export const CoursePlayer: React.FC = () => {
     autoReviewActive,
     clearAutomaticReview,
     showContextSentence,
-    toggleContextSentence
+    toggleContextSentence,
+    isRedemptionMode,
+    redemptionQueue,
+    redemptionIndex,
+    showRedemptionInterstitial,
+    dismissRedemptionInterstitial,
   } = useCourseStore();
   const { setActiveTab } = useAuthStore();
 
@@ -62,12 +72,16 @@ export const CoursePlayer: React.FC = () => {
       }
       if (e.key === 'Enter') {
         e.preventDefault();
-        nextSlide();
+        if (showRedemptionInterstitial) {
+          dismissRedemptionInterstitial();
+        } else {
+          nextSlide();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nextSlide]);
+  }, [nextSlide, showRedemptionInterstitial, dismissRedemptionInterstitial]);
 
   if (!activePart) {
     return (
@@ -83,6 +97,36 @@ export const CoursePlayer: React.FC = () => {
     );
   }
 
+  // Intercept completion with the Duolingo Redemption Interstitial
+  if (showRedemptionInterstitial) {
+    return (
+      <main className="w-full min-h-[100dvh] pt-[calc(1.5rem+var(--sat,0px))] pb-20 px-4 flex items-center justify-center animate-fadeIn select-none bg-slate-900/10 backdrop-blur-xs">
+        <div className="w-full max-w-md p-6 sm:p-8 rounded-3xl bg-white/95 backdrop-blur-2xl border border-amber-200/90 shadow-2xl text-center flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-3xl bg-amber-500/20 text-amber-600 flex items-center justify-center text-3xl shadow-md border border-amber-300/40">
+            🎯
+          </div>
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900">دور اول تکمیل شد!</h2>
+            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed mt-1">
+              حالا نوبت تثبیت ۱۰۰٪ مطالب است. <strong className="text-amber-700 font-bold">{toFa(redemptionQueue.length)} اسلاید</strong> در این پارت نیاز به مرور طلایی دارند.
+            </p>
+          </div>
+          <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200/80 text-amber-900 text-xs font-bold w-full text-right leading-relaxed flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+            <span>با پاسخ صحیح به این اسلایدها، پارت را با تسلط کامل ثبت کنید.</span>
+          </div>
+          <button
+            type="button"
+            onClick={dismissRedemptionInterstitial}
+            className="w-full min-h-[48px] py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 hover:from-amber-600 hover:to-amber-800 text-white font-black text-xs sm:text-sm cursor-pointer shadow-lg shadow-amber-500/25 active:scale-97 transition-all mt-1"
+          >
+            شروع مرور طلایی و تثبیت ✦
+          </button>
+        </div>
+      </main>
+    );
+  }
+
   if (isPartCompleted) {
     return (
       <main className="w-full px-4 md:px-6 pt-24 md:pt-28 pb-32">
@@ -91,9 +135,13 @@ export const CoursePlayer: React.FC = () => {
     );
   }
 
-  const currentEU = activePart.eus[currentSlideIndex];
+  const currentEU = isRedemptionMode && redemptionQueue.length > 0
+    ? redemptionQueue[redemptionIndex]
+    : activePart.eus[currentSlideIndex];
   const totalSlides = activePart.eus.length;
-  const isLastSlide = currentSlideIndex === totalSlides - 1;
+  const isLastSlide = isRedemptionMode
+    ? redemptionQueue.length === 1
+    : currentSlideIndex === totalSlides - 1;
 
   const renderEUSlide = () => {
     if (!currentEU) return null;
@@ -207,9 +255,16 @@ export const CoursePlayer: React.FC = () => {
           <span className="text-[11px] sm:text-xs font-black text-blue-950 bg-white/70 backdrop-blur-md px-2.5 sm:px-3.5 py-1 rounded-full border border-blue-100 shadow-2xs truncate max-w-[85px] sm:max-w-[200px]">
             {activePart.title}
           </span>
-          <span className="text-[10px] sm:text-xs font-bold text-slate-500 bg-white/60 px-2 sm:px-2.5 py-1 rounded-full border border-slate-200 shrink-0">
-            {currentSlideIndex + 1}/{totalSlides}
-          </span>
+
+          {isRedemptionMode ? (
+            <span className="text-[10px] sm:text-xs font-black text-amber-950 bg-amber-100 border border-amber-300 px-3 py-1 rounded-full animate-pulse shadow-xs shrink-0">
+              ⚡ مرور طلایی ({toFa(redemptionIndex + 1)} از {toFa(redemptionQueue.length)})
+            </span>
+          ) : (
+            <span className="text-[10px] sm:text-xs font-bold text-slate-500 bg-white/60 px-2 sm:px-2.5 py-1 rounded-full border border-slate-200 shrink-0">
+              {toFa(currentSlideIndex + 1)}/{toFa(totalSlides)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -234,7 +289,7 @@ export const CoursePlayer: React.FC = () => {
       >
         <button
           onClick={prevSlide}
-          disabled={currentSlideIndex === 0}
+          disabled={!isRedemptionMode && currentSlideIndex === 0}
           className="min-h-[40px] px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-black transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed bg-slate-100 hover:bg-slate-200 text-slate-700 active:scale-95"
         >
           قبلی
@@ -243,16 +298,30 @@ export const CoursePlayer: React.FC = () => {
         {/* Progress Bar inside pill */}
         <div className="w-16 sm:w-28 md:w-36 h-2 rounded-full bg-slate-200/80 overflow-hidden relative">
           <div
-            className="h-full bg-gradient-to-r from-cyan-400 to-blue-600 rounded-full transition-all duration-300"
-            style={{ width: `${Math.round(((currentSlideIndex + 1) / totalSlides) * 100)}%` }}
+            className={`h-full rounded-full transition-all duration-300 ${
+              isRedemptionMode
+                ? 'bg-gradient-to-r from-amber-400 to-amber-600 w-full animate-pulse'
+                : 'bg-gradient-to-r from-cyan-400 to-blue-600'
+            }`}
+            style={{
+              width: isRedemptionMode
+                ? '100%'
+                : `${Math.round(((currentSlideIndex + 1) / totalSlides) * 100)}%`,
+            }}
           />
         </div>
 
         <button
           onClick={nextSlide}
-          className="min-h-[40px] px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-black transition-all cursor-pointer bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-md shadow-blue-500/20 whitespace-nowrap active:scale-95 flex items-center gap-1"
+          className={`min-h-[40px] px-4 sm:px-5 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-black transition-all cursor-pointer text-white shadow-md whitespace-nowrap active:scale-95 flex items-center gap-1 ${
+            isRedemptionMode
+              ? 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 shadow-amber-500/25'
+              : 'bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 shadow-blue-500/20'
+          }`}
         >
-          {isLastSlide ? (
+          {isRedemptionMode ? (
+            <span>اسلاید بعدی ✦</span>
+          ) : isLastSlide ? (
             'پایان و ثبت'
           ) : (
             <>
