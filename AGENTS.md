@@ -1,5 +1,5 @@
 # Alqualite CourseBox (Mediqz) - Architecture & Directory Map
-**Current Milestone:** `v3.1.0-council` (Master Overhaul Ratified)
+**Current Milestone:** `v3.2.0-ratified` (RoutineHub Jalali Engine & Smart Sorter Overhaul Ratified)
 
 ## Tech Stack
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Zustand, Lucide React

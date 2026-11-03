@@ -1,33 +1,18 @@
-# Task Checklist: Alqualite (Mediaz) Multiagent Autonomous Overhaul (v3.0.0-master)
+# Task Checklist: RoutineHub Dynamic Jalali Engine & Smart Sorter Overhaul (v3.2.0-ratified)
 
-## Module 1: Bot Revival, Credential Wiring & Live Debugging Setup
-- [x] Step 1.1: Backend & Bot Credential Alignment (`config.py`, `.env`)
-- [x] Step 1.2: Process & Port Watchdog Script (`check_processes.sh`)
-- [x] Step 1.3: Live Service & Bot Webhook Sanity Check (`test_bot_connectivity.py`)
+## Phase 1: Dynamic Jalali Calendar Engine & Cache Invalidation
+- [x] Substep 1.1: Leap-Year Safe Live Shamsi Engine & Pure Date Shifter (`frontend/src/utils/shamsiCalendar.ts`)
+- [x] Substep 1.2: Dynamic Day Re-Anchoring & Cache Migration Engine (`frontend/src/store/useRoutineStore.ts`)
+- [x] Substep 1.3: Reactive RoutineHub Day Navigation Bar (`frontend/src/components/student/RoutineHub/RoutineHub.tsx`)
 
-## Module 2: Project-Wide `userdata.db` Strengthening & EU Logging Engine
-- [x] Step 2.1: `userdata.db` Schema Strengthening & Migration (`database.py`)
-- [x] Step 2.2: EU Activity Logging & Routine Schedule API Endpoints (`reviews.py`, `schemas.py`)
+## Phase 2: Mobile Viewport & Liquid-Glass Popup Architecture
+- [x] Substep 2.1: React Portal & Mobile 100dvh Bottom Sheet Architecture (`frontend/src/components/student/RoutineHub/RoutineSortModal.tsx`)
+- [x] Substep 2.2: Liquid-Glass Aesthetic & Contrast Fallback (`frontend/src/components/student/RoutineHub/RoutineSortModal.tsx`)
 
-## Module 3: RoutineHub Overhaul, Iranian Shamsi Calendar & Smart Sorter
-- [x] Step 3.1: Single-Line Course Badge & Duplicate `+` Icon Fix (`RoutineHub.tsx`)
-- [x] Step 3.2: True Iranian Shamsi Calendar Utility & Store Integration (`shamsiCalendar.ts`, `useRoutineStore.ts`)
-- [x] Step 3.3: Strict Future-Date Execution Lock (`RoutineHub.tsx`)
-- [x] Step 3.4: Advanced Routine Sorter Popup (`چینش`) Modal (`RoutineSortModal.tsx`)
+## Phase 3: 4-Step Smart Sorter UI & Continuous Repetition Algorithm
+- [x] Substep 3.1: Mathematical Distribution Engine with Continuous Repetition & ID Safety (`frontend/src/store/useRoutineStore.ts`)
+- [x] Substep 3.2: Single-Page Streamlined Smart Sorter Form with Sticky Footer (`frontend/src/components/student/RoutineHub/RoutineSortModal.tsx`)
 
-## Module 4: CourseHub, Adaptive Bottom Capsule & Liquid-Glass Top Bar
-- [x] Step 4.1: Mediaz Logo Transparency Fix (`MediazLogo.tsx`, `mediaz-emblem-transparent.png`)
-- [x] Step 4.2: Liquid-Glass Top Bar & User Name Display (`CourseBoxTopBar.tsx`, `UserProfileMenu.tsx`)
-- [x] Step 4.3: Thinner Adaptive Floating Bottom Capsule (`MobileBottomNav.tsx`)
-
-## Module 5: Auto Routine Sorter Overhaul & Study Player Mastery Loop (v3.1.0-council)
-- [x] Substep 5.0.1: Pedagogical Distribution Engine & Store Integration (`useRoutineStore.ts`)
-- [x] Substep 5.0.2: RoutineSortModal UI & Telemetry Overhaul (`RoutineSortModal.tsx`)
-- [x] Step 5.1: Mobile Study Player Viewport Flush Top & Virtual Keyboard Fix (`CoursePlayer.tsx`)
-- [x] Step 5.2: "View Answer" = `null` First-Pass Outcome Rule (`FillInTheBlank.tsx`, `LearnBox.tsx`)
-- [x] Step 5.3: In-Memory Duolingo End-of-Part Redemption Loop (`useCourseStore.ts`, `CoursePlayer.tsx`)
-- [x] Step 5.4: Generic Course "Incorrects & Skipped Hub" (`CoursePartsView.tsx`, `CourseMistakesModal.tsx`)
-
-## Module 6: Comprehensive Telegram Bot & Mini App Audit & Product Roadmap
-- [x] Step 6.1: Full-Suite Verification & Browser Automated E2E Testing (`verify_mobile_twa.py`, `test_full_suite.py`)
-- [x] Step 6.2: Supreme Council Final Audit & Strategic Product Roadmap (`final_supreme_council_audit_report.md`, `AGENTS.md`)
+## Phase 4: Schedule-to-Routine Translator Engine & Future Manual Editing
+- [x] Substep 4.1: Translator Engine & Full-Payload Cloud Sync (`frontend/src/store/useRoutineStore.ts`)
+- [x] Substep 4.2: Future-Date Manual Editability & Dual Execution Lock (`frontend/src/components/student/RoutineHub/RoutineHub.tsx`)

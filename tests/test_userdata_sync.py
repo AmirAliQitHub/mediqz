@@ -198,6 +198,66 @@ class TestUserDataSync(unittest.TestCase):
         for c in updated_cards:
             self.assertEqual(c["step"], 2)
 
+    def test_user_routines_sync_and_cleared_dates(self):
+        """Test routine synchronization and zombie elimination via cleared_dates."""
+        tg_id = self.base_test_tg_id + 6
+        res = self.client.post("/api/auth/telegram", json={
+            "id": tg_id,
+            "first_name": "امیر",
+            "last_name": "راد",
+            "username": "amir_rad"
+        })
+        self.assertEqual(res.status_code, 200)
+        token = res.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+
+        # Step 1: Sync 2 items on 1405-08-20
+        sync_res = self.client.post("/api/reviews/routines", headers=headers, json={
+            "routines": [
+                {
+                    "shamsi_date": "1405-08-20",
+                    "course_id": "c1",
+                    "course_title": "درس ۱",
+                    "part_id": "p1",
+                    "part_title": "پارت ۱",
+                    "slide_count": 5,
+                    "completed": False,
+                    "order_idx": 0
+                },
+                {
+                    "shamsi_date": "1405-08-20",
+                    "course_id": "c2",
+                    "course_title": "درس ۲",
+                    "part_id": "p1",
+                    "part_title": "پارت ۱",
+                    "slide_count": 4,
+                    "completed": False,
+                    "order_idx": 1
+                }
+            ],
+            "cleared_dates": []
+        })
+        self.assertEqual(sync_res.status_code, 200)
+
+        # Verify items exist
+        get_res = self.client.get("/api/reviews/routines", headers=headers)
+        self.assertEqual(get_res.status_code, 200)
+        items = get_res.json()
+        self.assertEqual(len(items), 2)
+
+        # Step 2: Remove all items on 1405-08-20 by specifying it in cleared_dates
+        clear_res = self.client.post("/api/reviews/routines", headers=headers, json={
+            "routines": [],
+            "cleared_dates": ["1405-08-20"]
+        })
+        self.assertEqual(clear_res.status_code, 200)
+
+        # Verify items are completely wiped from DB (no zombie resurrection)
+        get_res2 = self.client.get("/api/reviews/routines", headers=headers)
+        self.assertEqual(get_res2.status_code, 200)
+        items2 = get_res2.json()
+        self.assertEqual(len(items2), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

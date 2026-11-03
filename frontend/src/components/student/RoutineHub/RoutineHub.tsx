@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRoutineStore } from '../../../store/useRoutineStore';
 import { useCourseStore } from '../../../store/useCourseStore';
 import { useAuthStore } from '../../../store/useAuthStore';
 import { AddPartToRoutineModal } from './AddPartToRoutineModal';
 import { RoutineSortModal } from './RoutineSortModal';
-import { getCurrentShamsiDateString } from '../../../utils/shamsiCalendar';
+import { getCurrentShamsiDateString, toPersianDigits } from '../../../utils/shamsiCalendar';
 import {
   Calendar,
   Play,
@@ -38,22 +38,49 @@ export const RoutineHub: React.FC = () => {
     mistakes,
     startMistakesCourse,
     clearMistakes,
+    loadCloudRoutines,
   } = useRoutineStore();
+
+  useEffect(() => {
+    loadCloudRoutines();
+  }, [loadCloudRoutines]);
 
   const { courses, fetchCourseById, startPartPlayer } = useCourseStore();
   const { setActiveTab } = useAuthStore();
 
-  const todayShamsi = useMemo(() => getCurrentShamsiDateString(), []);
-  const selectedDay = days.find((d) => d.day_number === currentDayNumber) || days[0];
-  const isToday = selectedDay?.shamsi_date ? (selectedDay.shamsi_date === todayShamsi) : (selectedDay?.day_number === 1);
-  const isPast = selectedDay?.shamsi_date ? (selectedDay.shamsi_date < todayShamsi) : false;
-  const isFuture = selectedDay?.shamsi_date ? (selectedDay.shamsi_date > todayShamsi) : (selectedDay ? selectedDay.day_number > 1 : false);
+  const todayShamsi = days.find((d) => d.is_today)?.shamsi_date || getCurrentShamsiDateString();
+  const selectedDay = days.find((d) => d.day_number === currentDayNumber) || days.find((d) => d.is_today) || days[0];
+  const isToday = selectedDay?.is_today ?? (selectedDay?.shamsi_date === todayShamsi);
+  const isPast = selectedDay?.is_past ?? (selectedDay?.shamsi_date ? selectedDay.shamsi_date < todayShamsi : false);
+  const isFuture = selectedDay?.is_future ?? (selectedDay?.shamsi_date ? selectedDay.shamsi_date > todayShamsi : false);
   const completedCount = selectedDay?.items.filter((i) => i.completed).length || 0;
   const totalCount = selectedDay?.items.length || 0;
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showFutureLockToast = (customMsg?: string) => {
+    const msg =
+      customMsg ||
+      'مطالعه این روز در تاریخ مربوطه بازگشایی خواهد شد. هم‌اکنون می‌توانید پارت‌ها را ویرایش و مرتب کنید.';
+    setToastMessage(msg);
+    if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.HapticFeedback) {
+      try {
+        (window as any).Telegram.WebApp.HapticFeedback.notificationOccurred('warning');
+      } catch {}
+    }
+  };
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
   const handleStartDirectPart = async (courseId: string, partId: string) => {
     if (isFuture) {
-      alert('اجرای پارت‌ها برای روزهای آینده قفل است. برنامه‌ریزی روزهای آینده فعال و قابل ویرایش است.');
+      showFutureLockToast();
       return;
     }
     await fetchCourseById(courseId);
@@ -63,7 +90,7 @@ export const RoutineHub: React.FC = () => {
 
   const handleAutoStart = async () => {
     if (isFuture) {
-      alert('اجرای روتین برای روزهای آینده قفل است.');
+      showFutureLockToast();
       return;
     }
     if (!selectedDay || selectedDay.items.length === 0) {
@@ -94,7 +121,7 @@ export const RoutineHub: React.FC = () => {
             روتین‌های روزانه
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5 font-medium">
-            برنامه‌ریزی، تثبیت زنجیره‌ای پارت‌ها و مرور هوشمند
+            برنامه‌ریزی، مطالعه پیوسته پارت‌ها و مرور هوشمند
           </p>
         </div>
 
@@ -123,7 +150,7 @@ export const RoutineHub: React.FC = () => {
             }`}
           >
             <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-            <span>شکارگاه اشتباهات ({mistakes.length})</span>
+            <span>شکارگاه اشتباهات ({toPersianDigits(mistakes.length)})</span>
           </button>
         </div>
       </div>
@@ -131,7 +158,7 @@ export const RoutineHub: React.FC = () => {
       {activeSubTab === 'schedule' ? (
         <>
           {/* Day Selector Pills Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory scroll-smooth overscroll-x-contain py-1">
             {days.map((d) => {
               const isSelected = d.day_number === currentDayNumber;
               const dayCompleted = d.items.length > 0 && d.items.every((i) => i.completed);
@@ -141,17 +168,24 @@ export const RoutineHub: React.FC = () => {
                   key={d.day_number}
                   type="button"
                   onClick={() => setCurrentDay(d.day_number)}
-                  className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap cursor-pointer transition-all border flex items-center gap-1.5 ${
+                  className={`snap-start px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap cursor-pointer transition-all border flex items-center gap-1.5 select-none shrink-0 ${
                     isSelected
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-700 text-white border-blue-800 shadow-md shadow-blue-600/25 ring-2 ring-blue-400/30'
+                      : d.is_today
+                      ? 'bg-blue-50/90 hover:bg-blue-100 text-blue-900 border-blue-300 shadow-xs'
                       : 'bg-white/80 hover:bg-white text-slate-700 border-slate-200'
                   }`}
                 >
+                  {d.is_future && (
+                    <Lock className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-amber-300' : 'text-amber-500'}`} />
+                  )}
                   <span>{d.title}</span>
-                  {dayCompleted && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                  {dayCompleted && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
                   {d.items.length > 0 && !dayCompleted && (
-                    <span className="text-[10px] px-1.5 rounded-full bg-blue-100 text-blue-900 font-bold">
-                      {d.items.length}
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                      isSelected ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-900'
+                    }`}>
+                      {toPersianDigits(d.items.length)}
                     </span>
                   )}
                 </button>
@@ -164,7 +198,7 @@ export const RoutineHub: React.FC = () => {
             <div className="flex justify-between items-center flex-wrap gap-3 pb-3 border-b border-blue-100/70">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-400 to-blue-600 text-white flex items-center justify-center font-black shadow-md shadow-blue-500/20 text-sm">
-                  {selectedDay?.day_number || 1}
+                  {toPersianDigits(selectedDay?.day_str || selectedDay?.day_number || 1)}
                 </div>
                 <div>
                   <h2 className="text-base sm:text-lg font-black text-blue-950">
@@ -173,7 +207,7 @@ export const RoutineHub: React.FC = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-slate-400 font-bold">
                       {totalCount > 0
-                        ? `${completedCount} از ${totalCount} پارت تکمیل شده`
+                        ? `${toPersianDigits(completedCount)} از ${toPersianDigits(totalCount)} پارت تکمیل شده`
                         : 'هنوز پارتی برای این روز تعریف نشده است'}
                     </span>
                     {isFuture && (
@@ -246,11 +280,29 @@ export const RoutineHub: React.FC = () => {
                     <span>جبران خودکار پارت‌های جامانده</span>
                   </button>
                 ) : (
-                  <div className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => showFutureLockToast()}
+                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-white/15 hover:bg-white/20 backdrop-blur-md border border-white/30 text-amber-200 font-black text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-97 shadow-xs"
+                    title="مطالعه این روز در تاریخ مربوطه بازگشایی خواهد شد."
+                  >
                     <Lock className="w-4 h-4 text-amber-300" />
-                    <span>اجرا در روز مقرر روتین فعال می‌شود</span>
-                  </div>
+                    <span>🔒 قفل مطالعه • شروع روتین در تاریخ موعود فعال می‌شود</span>
+                  </button>
                 )}
+              </div>
+            )}
+
+            {/* Future Day Planning Banner */}
+            {isFuture && (
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-300/40 text-amber-950 flex items-center justify-between flex-wrap gap-2 text-xs font-bold shadow-xs">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>🗓️ حالت برنامه‌ریزی آینده — امکان جابجایی و ویرایش پارت‌ها فعال است</span>
+                </div>
+                <span className="text-[10px] text-amber-700 font-medium bg-amber-100/70 border border-amber-200 px-2.5 py-0.5 rounded-full">
+                  ویرایش دستی فعال
+                </span>
               </div>
             )}
 
@@ -279,9 +331,23 @@ export const RoutineHub: React.FC = () => {
                     <div className="flex items-center gap-3 min-w-0">
                       <button
                         type="button"
-                        onClick={() => toggleItemCompleted(currentDayNumber, item.id)}
-                        className="cursor-pointer text-slate-400 hover:text-emerald-600 transition-colors shrink-0"
-                        title={item.completed ? 'علامت به عنوان تکمیل‌نشده' : 'علامت به عنوان تکمیل‌شده'}
+                        onClick={() => {
+                          if (isFuture) {
+                            showFutureLockToast('تکمیل پارت‌ها فقط در روز مقرر امکان‌پذیر است.');
+                            return;
+                          }
+                          toggleItemCompleted(currentDayNumber, item.id);
+                        }}
+                        className={`transition-colors shrink-0 ${
+                          isFuture ? 'cursor-not-allowed opacity-60' : 'cursor-pointer hover:text-emerald-600'
+                        }`}
+                        title={
+                          isFuture
+                            ? 'قفل آموزشی: امکان ثبت انجام برای روزهای آینده وجود ندارد'
+                            : item.completed
+                            ? 'علامت به عنوان تکمیل‌نشده'
+                            : 'علامت به عنوان تکمیل‌شده'
+                        }
                       >
                         {item.completed ? (
                           <CheckCircle2 className="w-5 h-5 text-emerald-600" />
@@ -305,7 +371,7 @@ export const RoutineHub: React.FC = () => {
                           {item.part_title}
                         </h4>
                         <span className="text-[10px] text-slate-400 font-medium">
-                          {item.slide_count} اسلاید یادگیری
+                          {toPersianDigits(item.slide_count)} اسلاید یادگیری
                         </span>
                       </div>
                     </div>
@@ -313,16 +379,27 @@ export const RoutineHub: React.FC = () => {
                     <div className="flex items-center gap-2 shrink-0">
                       <button
                         type="button"
-                        disabled={isFuture}
-                        onClick={() => handleStartDirectPart(item.course_id, item.part_id)}
-                        className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                        onClick={() => {
+                          if (isFuture) {
+                            showFutureLockToast();
+                            return;
+                          }
+                          handleStartDirectPart(item.course_id, item.part_id);
+                        }}
+                        className={`min-h-[40px] px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                           isToday
-                            ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer shadow-xs active:scale-95'
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs active:scale-95'
                             : isPast
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer shadow-xs active:scale-95'
-                            : 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200'
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs active:scale-95'
+                            : 'bg-slate-100 hover:bg-amber-50 text-slate-400 hover:text-amber-700 border border-slate-200'
                         }`}
-                        title={isToday ? 'شروع مطالعه این پارت' : isPast ? 'جبران و مطالعه پارت جامانده' : 'اجرا در روز مقرر روتین فعال می‌شود'}
+                        title={
+                          isToday
+                            ? 'شروع مطالعه این پارت'
+                            : isPast
+                            ? 'جبران و مطالعه پارت جامانده'
+                            : 'قفل مطالعه • در تاریخ موعود باز خواهد شد'
+                        }
                       >
                         {isToday ? (
                           <>
@@ -336,7 +413,7 @@ export const RoutineHub: React.FC = () => {
                           </>
                         ) : (
                           <>
-                            <Lock className="w-3.5 h-3.5 text-slate-400" />
+                            <Lock className="w-3.5 h-3.5 text-amber-500" />
                             <span className="hidden sm:inline">قفل</span>
                           </>
                         )}
@@ -370,7 +447,7 @@ export const RoutineHub: React.FC = () => {
                   شکارگاه اشتباهات (بانک خطاهای روتین)
                 </h2>
                 <span className="text-xs text-slate-400 font-bold">
-                  {mistakes.length} واحد به خطا رفته برای تثبیت و مرور نهایی
+                  {toPersianDigits(mistakes.length)} واژه و سوال برای یادگیری کامل و مرور نهایی
                 </span>
               </div>
             </div>
@@ -403,7 +480,7 @@ export const RoutineHub: React.FC = () => {
                     شروع دوره اختصاصی رفع اشکال
                   </h3>
                   <p className="text-xs text-rose-100 font-medium">
-                    یک دوره پویا از تمام {mistakes.length} واحدی که در روتین غلط زده‌اید ساخته می‌شود تا آن‌ها را ۱۰۰٪ مسلط شوید.
+                    یک دوره پویا از تمام {toPersianDigits(mistakes.length)} واحدی که در روتین غلط زده‌اید ساخته می‌شود تا آن‌ها را ۱۰۰٪ مسلط شوید.
                   </p>
                 </div>
               </div>
@@ -479,6 +556,14 @@ export const RoutineHub: React.FC = () => {
         isOpen={isSortModalOpen}
         onClose={() => setIsSortModalOpen(false)}
       />
+
+      {/* Subtle Amber Lock Toast */}
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2.5 rounded-2xl bg-slate-900/95 text-amber-200 text-xs font-bold backdrop-blur-md shadow-2xl border border-amber-400/40 flex items-center gap-2 animate-fadeIn max-w-[90vw] text-center select-none pointer-events-none">
+          <Lock className="w-4 h-4 text-amber-300 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </main>
   );
 };

@@ -203,9 +203,9 @@ async def sync_user_routines(
     """
     now_iso = datetime.now().isoformat()
     with get_user_db() as conn:
-        # Group by dates touched in req
-        dates_touched = {item.shamsi_date for item in req.routines}
-        for s_date in dates_touched:
+        # Group by dates touched in req routines or explicitly cleared
+        dates_to_delete = {item.shamsi_date for item in req.routines} | set(req.cleared_dates or [])
+        for s_date in dates_to_delete:
             conn.execute("DELETE FROM user_routines WHERE user_id = ? AND shamsi_date = ?", (user["id"], s_date))
         
         for idx, item in enumerate(req.routines):

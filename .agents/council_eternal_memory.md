@@ -61,3 +61,26 @@
 - `frontend/src/store/`: `useAuthStore.ts`, `useRoutineStore.ts`, `useCourseStore.ts`.
 - `backend/app/`: FastAPI routers (`reviews.py`, `courses.py`, `auth.py`).
 - `userdata.db`: Root SQLite database in WAL mode.
+
+---
+
+## 6. MODULE 7 SCOPE: DYNAMIC JALALI ENGINE & SMART ROUTINE SORTER RE-ARCHITECTURE
+- **Phase 1: Dynamic Jalali Calendar Engine & Cache Invalidation:**
+  - Root Cause: `useRoutineStore.ts` cached the entire `days` array in `localStorage` (`mediaz_routine_days_v1`) including static `title`, `is_today: true`, and `shamsi_date`. On day rollover (e.g. from 12 Aban to 13 Aban), it reloaded the stale array without recomputing today's date or shifting `is_today` to the actual date.
+  - Fix: Decouple routine items from day tab metadata. Store items by standard Shamsi date string (`YYYY-MM-DD`). On store initialization or day check, dynamically re-anchor days against `getEffectiveStudyDate()`. Compute `is_today`, `is_past`, `is_future`, and Persian titles in real-time.
+- **Phase 2: Mobile Viewport & Liquid-Glass Popup Architecture:**
+  - Root Cause: Popup rendered inside DOM sub-hierarchy with `items-end`, prone to overflow truncation and 10% bottom-screen clipping on Telegram WebApp. Background was opaque `bg-slate-950/95` and muddy black `bg-black/70`.
+  - Fix: React Portal to `document.body` with `fixed inset-0 z-[9999]`. Use `100dvh` container with standard bottom-sheet / modal height (80-85dvh) with internal scroll (`overflow-y-auto overscroll-contain`). Replace muddy black with project standard liquid glass: semi-transparent backdrop blur (`backdrop-blur-md bg-slate-950/40`) and modal card in deep translucent purple glass (`bg-[#110d26]/85 backdrop-blur-2xl border border-purple-500/25 text-white`).
+- **Phase 3: 4-Step Streamlined Smart Sorter Workflow & Continuous Repetition Algorithm:**
+  - Strip obsolete options (cram, leitner odd/even, fixed duration presets).
+  - Step 1: Course Selector (auto-detects total parts from course metadata, zero hardcoding).
+  - Step 2: Start Date Picker (from today forward in Shamsi) & Live Reactive End Date Display.
+  - Step 3: Daily Part Quota ($P$ parts per batch).
+  - Step 4: Continuous Repetition Mode ($R$ days repeat):
+    - If toggled ON, shows input for $R$ (repetition days).
+    - Algorithm: Each batch of $P$ parts is scheduled on day $T$ (initial study), then repeated identically on days $T+1, \dots, T+R$. Total days per batch = $1 + R$. Next batch starts on day $T + R + 1$.
+    - If toggled OFF ($R = 0$), each batch takes 1 day.
+- **Phase 4: Schedule-to-Routine Translator Engine & Future Manual Editing:**
+  - Sorter outputs normal daily routine records in `useRoutineStore` and syncs to `userdata.db` (`user_routines` table).
+  - Preserves manual editing for future days: Users can click any future date tab, add, remove, or reorder parts manually.
+  - Execution lock enforced: "Start Routine" / "Play" is locked for future dates, but planning/editing remains 100% unlocked.

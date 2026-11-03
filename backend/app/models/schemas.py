@@ -107,3 +107,4 @@ class UserRoutineItem(BaseModel):
 
 class UserRoutinesSyncReq(BaseModel):
     routines: List[UserRoutineItem]
+    cleared_dates: List[str] = []
