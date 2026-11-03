@@ -140,7 +140,7 @@ export const UserProfileMenu: React.FC = () => {
                   <div className="flex items-center gap-1.5 truncate">
                     <Send className="w-3 h-3 text-emerald-600 shrink-0 rotate-[-15deg]" />
                     <span className="truncate">
-                      {user.telegram_username ? `@${user.telegram_username}` : `ID: ${user.telegram_user_id}`}
+                      {user.telegram_username ? `@${user.telegram_username}` : 'متصل به تلگرام'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -198,7 +198,7 @@ export const UserProfileMenu: React.FC = () => {
                 <div className="flex flex-col text-right leading-tight">
                   <span className="text-slate-800 font-black">پروفایل و مدیریت حساب</span>
                   <span className="text-[10px] text-slate-400">
-                    شناسه تلگرام، رمز عبور وب و تنظیمات
+                    اتصال تلگرام، رمز عبور وب و تنظیمات
                   </span>
                 </div>
               </div>

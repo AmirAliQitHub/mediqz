@@ -118,36 +118,45 @@ def register(req: UserRegisterReq):
     username = req.username.strip().lower()
     if not username or len(req.password) < 4:
         raise HTTPException(status_code=400, detail="نام کاربری و رمز عبور حداقل ۴ کاراکتر الزامی است.")
-    if not USERNAME_REGEX.match(username) and not username.isdigit():
+    if not USERNAME_REGEX.match(username):
         raise HTTPException(
             status_code=400,
-            detail="نام کاربری باید بین ۳ تا ۳۰ کاراکتر و فقط شامل حروف انگلیسی، اعداد و _ باشد."
+            detail="نام کاربری باید بین ۳ تا ۳۰ کاراکتر و فقط شامل حروف انگلیسی کوچک، اعداد و _ باشد."
         )
 
     disp_name = req.display_name.strip() if req.display_name else username
     is_su = 1 if (disp_name == "amirtaii8123" or username == "amirtaii8123") else 0
     access_lvl = "SUPERUSER" if is_su else "S2"
 
+    tg_user_id = None
+    tg_username = None
+
+    if req.init_data:
+        validated = validate_telegram_init_data(req.init_data)
+        if validated and validated.get("user") and isinstance(validated["user"], dict):
+            u_info = validated["user"]
+            if u_info.get("id"):
+                tg_user_id = int(u_info["id"])
+                tg_username = u_info.get("username")
+
     with get_user_db() as conn:
         exists = conn.execute("SELECT id FROM users WHERE lower(username) = ?", (username,)).fetchone()
         if exists:
             raise HTTPException(status_code=400, detail="این نام کاربری قبلاً ثبت شده است.")
 
-        tg_user_id = None
-        if username.isdigit():
-            tg_user_id = int(username)
+        if tg_user_id:
             exists_tg = conn.execute("SELECT id FROM users WHERE telegram_user_id = ?", (tg_user_id,)).fetchone()
             if exists_tg:
-                raise HTTPException(status_code=400, detail="این شناسه کاربری تلگرام قبلاً ثبت شده است. لطفاً وارد شوید.")
+                raise HTTPException(status_code=400, detail="این اکانت تلگرام قبلاً به حساب کاربری دیگری متصل شده است.")
 
         salt = generate_salt()
         pwd_hash = hash_password(req.password, salt)
         now = datetime.now().isoformat()
 
         cur = conn.execute(
-            "INSERT INTO users (username, password_hash, salt, display_name, avatar_url, access_level, grade, is_onboarded, is_superuser, telegram_user_id, has_password, created_at) "
-            "VALUES (?, ?, ?, ?, '', ?, '', 0, ?, ?, 1, ?)",
-            (username, pwd_hash, salt, disp_name, access_lvl, is_su, tg_user_id, now)
+            "INSERT INTO users (username, password_hash, salt, display_name, avatar_url, access_level, grade, is_onboarded, is_superuser, telegram_user_id, telegram_username, has_password, created_at) "
+            "VALUES (?, ?, ?, ?, '', ?, '', 0, ?, ?, ?, 1, ?)",
+            (username, pwd_hash, salt, disp_name, access_lvl, is_su, tg_user_id, tg_username, now)
         )
         user_id = cur.lastrowid
         token = generate_session_token()
@@ -166,8 +175,9 @@ def register(req: UserRegisterReq):
                 "access_level": access_lvl,
                 "grade": "",
                 "is_onboarded": False,
-                "is_superuser": bool(is_su),
+                "is_superuser": is_su,
                 "telegram_user_id": tg_user_id,
+                "telegram_username": tg_username,
                 "has_password": True,
             },
             "needs_onboarding": True
@@ -441,7 +451,7 @@ async def request_magic_login(payload: dict, request: Request):
     """
     raw_ident = payload.get("identifier", "").strip()
     if not raw_ident:
-        raise HTTPException(status_code=400, detail="لطفاً نام کاربری یا شناسه کاربری تلگرام خود را وارد فرمایید.")
+        raise HTTPException(status_code=400, detail="لطفاً نام کاربری خود را وارد فرمایید.")
 
     clean_ident = raw_ident.lstrip("@").lower()
 
@@ -458,13 +468,13 @@ async def request_magic_login(payload: dict, request: Request):
             ).fetchone()
 
         if not user:
-            raise HTTPException(status_code=404, detail="کاربری با این مشخصات یافت نشد.")
+            raise HTTPException(status_code=404, detail="کاربری با این نام کاربری یافت نشد.")
 
         tg_user_id = user["telegram_user_id"]
         if not tg_user_id:
             raise HTTPException(
                 status_code=400,
-                detail="این حساب کاربری هنوز به تلگرام متصل نشده است. لطفاً با رمز عبور وارد شوید."
+                detail="این حساب کاربری هنوز به تلگرام متصل نشده است. لطفاً با رمز عبور وارد شوید، یا یک‌بار از طریق تلگرام وارد شوید تا حسابتان متصل گردد."
             )
 
         # Council Mandate #5: Push Flooding Defense

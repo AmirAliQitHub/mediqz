@@ -170,10 +170,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   registerWithCredentials: async (username: string, password: string, displayName: string) => {
     set({ isLoading: true });
     try {
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData || undefined;
       const res = await api.post<{ token: string; user: User }>('/auth/register', {
         username: username.trim(),
         password: password.trim(),
         display_name: displayName.trim(),
+        ...(initData ? { init_data: initData } : {}),
       });
       if (res && res.token && res.user) {
         setAuthToken(res.token);

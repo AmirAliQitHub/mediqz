@@ -174,20 +174,20 @@ export const UserAccountTab: React.FC = () => {
 
           <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/60 flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600 font-medium">شناسه عددی تلگرام (Telegram ID):</span>
-              <span className="font-mono font-bold text-slate-800 bg-white px-2 py-0.5 rounded-lg border border-slate-200 dir-ltr">
-                {user.telegram_user_id ? user.telegram_user_id : 'ثبت نشده'}
+              <span className="text-slate-600 font-medium">وضعیت اتصال به تلگرام:</span>
+              <span className="font-bold text-slate-800 bg-white px-2 py-0.5 rounded-lg border border-slate-200">
+                {user.telegram_username ? `@${user.telegram_username}` : (user.telegram_user_id ? 'متصل و فعال' : 'ثبت نشده')}
               </span>
             </div>
 
             <p className="text-[11px] text-slate-500 leading-relaxed font-normal pt-1 border-t border-slate-200/40">
               {hasTelegramLinked ? (
                 <span>
-                  هنگام باز کردن سامانه درون ربات تلگرام، به طور خودکار و بدون نیاز به رمز عبور وارد می‌شوید.
+                  اکانت تلگرام شما متصل است. هنگام باز کردن سامانه درون ربات تلگرام، به طور خودکار و بدون نیاز به رمز عبور وارد می‌شوید.
                 </span>
               ) : (
                 <span>
-                  اگر قبلاً در وب ثبت‌نام کرده‌اید، می‌توانید با باز کردن ربات تلگرام و زدن /start حساب خود را متصل کنید.
+                  برای اتصال تلگرام، کافیست یک‌بار با نام کاربری و رمز عبور خود در وب‌اپ تلگرام وارد شوید تا اکانت شما خودکار متصل گردد.
                 </span>
               )}
             </p>
@@ -222,7 +222,7 @@ export const UserAccountTab: React.FC = () => {
 
           <div className="p-3.5 rounded-2xl bg-blue-50/50 border border-blue-100/70 text-xs text-slate-600 leading-relaxed">
             <p>
-              با تعریف رمز عبور، می‌توانید در هر دستگاهی خارج از تلگرام، با وارد کردن شناسه کاربری (یا شناسه تلگرام) و این رمز وارد حساب خود شوید.
+              با تعریف رمز عبور، می‌توانید در هر دستگاهی خارج از تلگرام، با وارد کردن نام کاربری و این رمز وارد حساب خود شوید.
             </p>
           </div>
 

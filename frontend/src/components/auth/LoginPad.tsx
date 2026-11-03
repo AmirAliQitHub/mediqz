@@ -39,6 +39,8 @@ export const LoginPad: React.FC = () => {
 
   // TWA Dual Start & Account Linking State (Council Mandate #10)
   const [twaLinkingMode, setTwaLinkingMode] = useState(false);
+  const [twaConfirmLinkOpen, setTwaConfirmLinkOpen] = useState(false);
+  const [pendingCredentials, setPendingCredentials] = useState<{ username: string; password: string } | null>(null);
   const [linkUsername, setLinkUsername] = useState('');
   const [linkPassword, setLinkPassword] = useState('');
   const [linkShowPassword, setLinkShowPassword] = useState(false);
@@ -121,11 +123,52 @@ export const LoginPad: React.FC = () => {
     }
   };
 
+  const handleConfirmTwaLink = async () => {
+    if (!pendingCredentials) return;
+    setLinkLoading(true);
+    setLinkError(null);
+    try {
+      const res = await api.post<{ success: boolean; token: string; user: any }>('/auth/link-telegram', {
+        username: pendingCredentials.username,
+        password: pendingCredentials.password,
+        init_data: tg?.initData || '',
+      });
+      if (res && res.token && res.user) {
+        login(res.token, res.user);
+        setTwaConfirmLinkOpen(false);
+      } else {
+        setLinkError('پاسخی از سرور دریافت نشد.');
+      }
+    } catch (err: any) {
+      setLinkError(err.message || 'خطا در اتصال حساب به تلگرام.');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
+  const handleSkipTwaLink = async () => {
+    if (!pendingCredentials) return;
+    setLinkLoading(true);
+    setLinkError(null);
+    try {
+      const res = await loginWithCredentials(pendingCredentials.username, pendingCredentials.password);
+      if (res.success) {
+        setTwaConfirmLinkOpen(false);
+      } else {
+        setLinkError(res.error || 'نام کاربری یا رمز عبور اشتباه است.');
+      }
+    } catch (err: any) {
+      setLinkError(err.message || 'خطا در ورود.');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
+
   // Initiate Magic Telegram Login
   const handleMagicLoginRequest = async () => {
     const trimmedUser = username.trim();
     if (!trimmedUser) {
-      triggerError('لطفاً ابتدا شناسه عددی یا نام کاربری تلگرام خود را وارد فرمایید.');
+      triggerError('لطفاً ابتدا نام کاربری خود را وارد فرمایید.');
       usernameRef.current?.focus();
       return;
     }
@@ -215,7 +258,7 @@ export const LoginPad: React.FC = () => {
     const trimmedPass = password.trim();
 
     if (!trimmedUser) {
-      triggerError('لطفاً شناسه تلگرام یا نام کاربری را وارد کنید.');
+      triggerError('لطفاً نام کاربری خود را وارد کنید.');
       usernameRef.current?.focus();
       return;
     }
@@ -236,9 +279,17 @@ export const LoginPad: React.FC = () => {
         triggerError(res.error || 'خطا در ثبت‌نام حساب جدید.');
       }
     } else {
+      // If user is inside Telegram WebApp, prompt with confirmation popup to bind Telegram account
+      if (tgUser && tgUser.id) {
+        setPendingCredentials({ username: trimmedUser, password: trimmedPass });
+        setTwaConfirmLinkOpen(true);
+        setLinkError(null);
+        return;
+      }
+
       const res = await loginWithCredentials(trimmedUser, trimmedPass);
       if (!res.success) {
-        triggerError(res.error || 'شناسه کاربری یا رمز عبور اشتباه است.');
+        triggerError(res.error || 'نام کاربری یا رمز عبور اشتباه است.');
       }
     }
   };
@@ -270,9 +321,9 @@ export const LoginPad: React.FC = () => {
           <div className="p-4 rounded-3xl bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-cyan-500/10 border border-blue-200/80 flex flex-col gap-3.5 shadow-sm">
             {/* Telegram User Identity Capsule */}
             <div className="flex items-center justify-between text-xs pb-1 border-b border-blue-200/50">
-              <span className="font-bold text-slate-600">هویت شناسایی‌شده تلگرام:</span>
-              <span className="font-mono text-[11px] font-bold text-blue-700 bg-blue-100/90 px-2.5 py-0.5 rounded-full shadow-2xs">
-                ID: {toPersianDigits(tgUser.id)}
+              <span className="font-bold text-slate-600">ورود با اکانت تلگرام:</span>
+              <span className="font-bold text-blue-700 bg-blue-100/90 px-2.5 py-0.5 rounded-full shadow-2xs text-[11px]">
+                {tgUser.username ? `@${tgUser.username}` : tgUser.first_name}
               </span>
             </div>
 
@@ -496,8 +547,8 @@ export const LoginPad: React.FC = () => {
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-              <label>شناسه تلگرام یا نام کاربری:</label>
-              <span className="text-[10px] text-blue-600 font-medium">عددی یا متنی</span>
+              <label>نام کاربری:</label>
+              <span className="text-[10px] text-blue-600 font-medium">حروف انگلیسی</span>
             </div>
             <div className="relative flex items-center">
               <input
@@ -505,7 +556,7 @@ export const LoginPad: React.FC = () => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="مثال: 99887766 یا نام کاربری"
+                placeholder="مثال: ali_rezaei"
                 autoComplete="username"
                 disabled={isLoading}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-2xl bg-white/90 border border-slate-200/80 font-mono font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all shadow-2xs text-left dir-ltr"
@@ -761,6 +812,75 @@ export const LoginPad: React.FC = () => {
             >
               ورود سنتی با نام کاربری و رمز عبور
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Telegram WebApp Account Linking Confirmation Modal */}
+      {twaConfirmLinkOpen && pendingCredentials && (
+        <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fadeIn select-none">
+          <div className="w-full max-w-sm bg-white/95 backdrop-blur-2xl border border-white/90 rounded-3xl p-6 flex flex-col gap-4 text-right shadow-2xl relative">
+            <div className="flex items-center gap-2.5 text-blue-900 font-black text-sm border-b border-slate-100 pb-3">
+              <div className="p-2.5 rounded-2xl bg-blue-100 text-blue-600">
+                <Link2 className="w-5 h-5" />
+              </div>
+              <span>اتصال حساب مدیاز به تلگرام</span>
+            </div>
+
+            <div className="flex flex-col gap-2 text-xs text-slate-600 leading-relaxed font-medium">
+              <p>
+                سلام <strong className="text-slate-900">{tgUser?.first_name || 'کاربر گرامی'}</strong> جان! 👋
+              </p>
+              <p>
+                آیا مایلید اکانت تلگرام شما به حساب کاربری <code className="font-mono text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded font-bold">@{pendingCredentials.username}</code> متصل شود؟
+              </p>
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 text-[11px] text-slate-600 space-y-1.5 mt-1">
+                <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>ورود خودکار و بدون نیاز به رمز در دفعات بعدی باز کردن تلگرام</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                  <Check className="w-3.5 h-3.5 shrink-0" />
+                  <span>امکان ورود به لپ‌تاپ تنها با فشردن دکمه تایید در تلگرام</span>
+                </div>
+              </div>
+            </div>
+
+            {linkError && (
+              <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold text-center">
+                {linkError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 mt-1">
+              <button
+                type="button"
+                onClick={handleConfirmTwaLink}
+                disabled={linkLoading}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs cursor-pointer shadow-md shadow-blue-500/25 transition-all active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {linkLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>در حال اتصال اکانت به تلگرام...</span>
+                  </>
+                ) : (
+                  <>
+                    <Link2 className="w-4 h-4" />
+                    <span>بله، این اکانت تلگرام را متصل کن</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSkipTwaLink}
+                disabled={linkLoading}
+                className="w-full py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 cursor-pointer transition-all active:scale-98"
+              >
+                ورود موقت بدون اتصال به تلگرام
+              </button>
+            </div>
           </div>
         </div>
       )}

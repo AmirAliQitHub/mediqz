@@ -5,6 +5,7 @@ class UserRegisterReq(BaseModel):
     username: str
     password: str
     display_name: Optional[str] = None
+    init_data: Optional[str] = None
 
 class UserLoginReq(BaseModel):
     username: str
