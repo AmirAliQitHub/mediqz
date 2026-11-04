@@ -37,6 +37,11 @@ export const LoginPad: React.FC = () => {
   const [magicError, setMagicError] = useState<string | null>(null);
   const [magicIsApproved, setMagicIsApproved] = useState(false);
 
+  // Live username availability state for registration mode (Council Mandate & Module 9)
+  const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'unavailable'>('idle');
+  const [usernameFeedback, setUsernameFeedback] = useState<string>('');
+  const checkSeqRef = useRef<number>(0);
+
   // TWA Dual Start & Account Linking State (Council Mandate #10)
   const [twaLinkingMode, setTwaLinkingMode] = useState(false);
   const [twaConfirmLinkOpen, setTwaConfirmLinkOpen] = useState(false);
@@ -60,6 +65,74 @@ export const LoginPad: React.FC = () => {
   useEffect(() => {
     usernameRef.current?.focus();
   }, [mode]);
+
+  // Debounced real-time username availability checker for registration
+  useEffect(() => {
+    if (mode !== 'register') {
+      setUsernameStatus('idle');
+      setUsernameFeedback('');
+      return;
+    }
+
+    const clean = username.trim().toLowerCase();
+    if (!clean) {
+      setUsernameStatus('idle');
+      setUsernameFeedback('');
+      return;
+    }
+
+    if (clean.length < 3) {
+      setUsernameStatus('unavailable');
+      setUsernameFeedback('حداقل ۳ کاراکتر الزامی است');
+      return;
+    }
+
+    if (/^\d+$/.test(clean)) {
+      setUsernameStatus('unavailable');
+      setUsernameFeedback('نام کاربری نمی‌تواند صرفاً عدد باشد');
+      return;
+    }
+
+    if (clean.startsWith('tg_')) {
+      setUsernameStatus('unavailable');
+      setUsernameFeedback('استفاده از پیشوند tg_ مجاز نیست');
+      return;
+    }
+
+    if (!/^(?=.*[a-z0-9])[a-z0-9_]{3,30}$/.test(clean)) {
+      setUsernameStatus('unavailable');
+      setUsernameFeedback('۳ تا ۳۰ کاراکتر انگلیسی کوچک، عدد یا _');
+      return;
+    }
+
+    setUsernameStatus('checking');
+    setUsernameFeedback('در حال استعلام...');
+    const currentSeq = ++checkSeqRef.current;
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get<{ available: boolean; reason?: string }>(
+          `/auth/check-username?username=${encodeURIComponent(clean)}`
+        );
+        if (checkSeqRef.current === currentSeq) {
+          if (res.available) {
+            setUsernameStatus('available');
+            setUsernameFeedback('نام کاربری آزاد است');
+          } else {
+            setUsernameStatus('unavailable');
+            setUsernameFeedback(res.reason || 'این نام کاربری قبلاً ثبت شده است');
+          }
+        }
+      } catch {
+        if (checkSeqRef.current === currentSeq) {
+          setUsernameStatus('unavailable');
+          setUsernameFeedback('خطا در استعلام نام کاربری');
+        }
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [username, mode]);
 
   const triggerError = (msg: string) => {
     setErrorMessage(msg);
@@ -254,7 +327,7 @@ export const LoginPad: React.FC = () => {
     e.preventDefault();
     setErrorMessage(null);
 
-    const trimmedUser = username.trim();
+    const trimmedUser = username.trim().toLowerCase();
     const trimmedPass = password.trim();
 
     if (!trimmedUser) {
@@ -269,9 +342,19 @@ export const LoginPad: React.FC = () => {
     }
 
     if (mode === 'register') {
-      const trimmedName = displayName.trim();
+      const trimmedName = displayName.trim().replace(/ي/g, 'ی').replace(/ك/g, 'ک');
       if (!trimmedName) {
-        triggerError('لطفاً نام و نام خانوادگی خود را وارد کنید.');
+        triggerError('لطفاً نام و نام خانوادگی خود را به فارسی وارد کنید.');
+        return;
+      }
+      if (usernameStatus !== 'available') {
+        triggerError(usernameFeedback || 'لطفاً یک نام کاربری معتبر و آزاد انتخاب فرمایید.');
+        usernameRef.current?.focus();
+        return;
+      }
+      if (trimmedPass.length < 4) {
+        triggerError('رمز عبور باید حداقل ۴ کاراکتر باشد.');
+        passwordRef.current?.focus();
         return;
       }
       const res = await registerWithCredentials(trimmedUser, trimmedPass, trimmedName);
@@ -279,6 +362,12 @@ export const LoginPad: React.FC = () => {
         triggerError(res.error || 'خطا در ثبت‌نام حساب جدید.');
       }
     } else {
+      // If user enters pure digits in login, alert with helpful Persian guidance
+      if (/^\d+$/.test(trimmedUser)) {
+        triggerError('ورود با شناسه عددی تلگرام پشتیبانی نمی‌شود. لطفاً از آیدی مدیاز یا ورود مستقیم تلگرام استفاده فرمایید.');
+        return;
+      }
+
       // If user is inside Telegram WebApp, prompt with confirmation popup to bind Telegram account
       if (tgUser && tgUser.id) {
         setPendingCredentials({ username: trimmedUser, password: trimmedPass });
@@ -535,7 +624,7 @@ export const LoginPad: React.FC = () => {
                 <input
                   type="text"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => setDisplayName(e.target.value.replace(/ي/g, 'ی').replace(/ك/g, 'ک'))}
                   placeholder="مثال: علی رضایی"
                   autoComplete="name"
                   disabled={isLoading}
@@ -547,7 +636,9 @@ export const LoginPad: React.FC = () => {
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-              <label>نام کاربری:</label>
+              <label className="flex items-center gap-1.5">
+                <bdi>{mode === 'register' ? 'نام کاربری (آیدی مدیاز):' : 'نام کاربری:'}</bdi>
+              </label>
               <span className="text-[10px] text-blue-600 font-medium">حروف انگلیسی</span>
             </div>
             <div className="relative flex items-center">
@@ -556,13 +647,49 @@ export const LoginPad: React.FC = () => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="مثال: ali_rezaei"
+                placeholder="ali_rezaei"
                 autoComplete="username"
                 disabled={isLoading}
                 className="w-full min-h-[44px] px-3.5 py-2.5 rounded-2xl bg-white/90 border border-slate-200/80 font-mono font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all shadow-2xs text-left dir-ltr"
               />
               <UserIcon className="absolute right-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
             </div>
+
+            {/* Fixed-Height Real-Time Feedback Container (CLS Elimination) */}
+            {mode === 'register' && (
+              <div className="h-6 min-h-[24px] flex items-center justify-between px-1 text-[11px] font-bold">
+                {usernameStatus === 'checking' && (
+                  <div className="flex items-center gap-1.5 text-blue-600">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>در حال بررسی دسترسی...</span>
+                  </div>
+                )}
+                {usernameStatus === 'available' && (
+                  <div className="flex items-center gap-1.5 text-emerald-600">
+                    <Check className="w-3.5 h-3.5" />
+                    <span>نام کاربری آزاد است</span>
+                  </div>
+                )}
+                {usernameStatus === 'unavailable' && (
+                  <div className="flex items-center gap-1.5 text-rose-600 truncate">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{usernameFeedback}</span>
+                  </div>
+                )}
+                {usernameStatus === 'idle' && (
+                  <span className="text-[10px] text-slate-400 font-normal">
+                    ۳ تا ۳۰ کاراکتر انگلیسی کوچک، عدد یا _
+                  </span>
+                )}
+              </div>
+            )}
+
+            {mode === 'login' && /^\d+$/.test(username.trim()) && (
+              <div className="h-6 min-h-[24px] flex items-center gap-1.5 px-1 text-[10px] font-bold text-amber-600 animate-fadeIn">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">ورود با شناسه عددی تلگرام پشتیبانی نمی‌شود. لطفاً آیدی مدیاز را وارد کنید.</span>
+              </div>
+            )}
           </div>
 
           {/* Desktop Magic Telegram Login Button (Council Mandate #8) */}
@@ -590,9 +717,7 @@ export const LoginPad: React.FC = () => {
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
               <label>رمز عبور:</label>
-              {mode === 'login' && (
-                <span className="text-[10px] text-slate-500 font-normal">حداقل ۴ کاراکتر</span>
-              )}
+              <span className="text-[10px] text-slate-500 font-normal">حداقل ۴ کاراکتر</span>
             </div>
             <div className="relative flex items-center">
               <input
@@ -603,31 +728,43 @@ export const LoginPad: React.FC = () => {
                 placeholder="••••••••"
                 autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                 disabled={isLoading}
-                className="w-full min-h-[44px] px-3.5 py-2.5 pl-10 rounded-2xl bg-white/90 border border-slate-200/80 font-mono font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all shadow-2xs text-left dir-ltr"
+                className="w-full min-h-[44px] px-3.5 py-2.5 pl-12 rounded-2xl bg-white/90 border border-slate-200/80 font-mono font-bold text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all shadow-2xs text-left dir-ltr"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? 'مخفی‌سازی رمز' : 'نمایش رمز'}
-                className="absolute left-3 text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
+                className="absolute left-1 text-slate-400 hover:text-slate-600 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer active:scale-95"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          {/* Educational Guidance Micro-copy */}
-          <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100/80 text-[11px] text-slate-600 leading-relaxed font-medium">
-            <p>
-              💡 <strong className="text-blue-900">ورود دوگانه و هوشمند:</strong> می‌توانید با وارد کردن نام کاربری و رمز عبور وارد شوید، یا با فشردن دکمه «ورود با تایید تلگرام»، تاییدیه ورود را به سادگی روی گوشی خود لمس فرمایید.
-            </p>
-          </div>
+          {/* Context-Aware Educational Micro-Copy */}
+          {mode === 'login' ? (
+            <div className="p-3 rounded-xl bg-blue-50/70 border border-blue-100/80 text-[11px] text-slate-600 leading-relaxed font-medium">
+              <p>
+                💡 <strong className="text-blue-900">ورود دوگانه و هوشمند:</strong> می‌توانید با وارد کردن نام کاربری و رمز عبور وارد شوید، یا با فشردن دکمه «ورود با تایید تلگرام»، تاییدیه ورود را به سادگی روی گوشی خود لمس فرمایید.
+              </p>
+            </div>
+          ) : (
+            <div className="p-3 rounded-xl bg-indigo-50/70 border border-indigo-100/80 text-[11px] text-slate-600 leading-relaxed font-medium">
+              <p>
+                💡 <strong className="text-indigo-900">توجه:</strong> آیدی مدیاز همان شناسه اختصاصی شما برای ورود به سامانه در لپ‌تاپ و وب است. لطفاً آن را به خاطر بسپارید.
+              </p>
+            </div>
+          )}
 
           {/* Submit Action Button */}
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full min-h-[46px] mt-1 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm shadow-md shadow-blue-500/25 cursor-pointer transition-all active:scale-98 disabled:opacity-50 flex items-center justify-center gap-2"
+            disabled={
+              isLoading ||
+              usernameStatus === 'checking' ||
+              (mode === 'register' && (usernameStatus !== 'available' || !displayName.trim() || password.length < 4))
+            }
+            className="w-full min-h-[48px] mt-1 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-700 text-white font-black text-xs sm:text-sm shadow-md shadow-blue-500/25 cursor-pointer transition-all active:scale-98 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
@@ -651,7 +788,7 @@ export const LoginPad: React.FC = () => {
         {/* Minimalist Version & Engine Footer */}
         <div className="flex items-center justify-center gap-2 text-[11px] font-mono text-slate-500 pt-3 border-t border-slate-100">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="font-bold">v3.4.0-auth</span>
+          <span className="font-bold">v3.5.0-identities</span>
           <span className="text-slate-300">•</span>
           <span className="font-sans text-[10px]">سامانه هوشمند مدیاز</span>
         </div>

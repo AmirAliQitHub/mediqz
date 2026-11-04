@@ -1,8 +1,9 @@
 import React, { useEffect, Suspense, lazy } from 'react';
-import { useAuthStore } from './store/useAuthStore';
+import { useAuthStore, isLegacyUser } from './store/useAuthStore';
 import { CourseBoxTopBar } from './components/layout/CourseBoxTopBar';
 import { MobileBottomNav } from './components/layout/MobileBottomNav';
 import { OnboardingModal } from './components/auth/OnboardingModal';
+import { LegacyMigrationModal } from './components/auth/LegacyMigrationModal';
 import { LoginPad } from './components/auth/LoginPad';
 import { CourseLibrary } from './components/student/CourseLibrary';
 import { CoursePartsView } from './components/student/CoursePartsView';
@@ -99,6 +100,16 @@ export const App: React.FC = () => {
     );
   }
 
+  // DOM Anti-Bypass Guard: Force migration modal exclusively for legacy users
+  if (isLegacyUser(user)) {
+    return (
+      <div className="min-h-screen relative flex flex-col font-sans text-slate-900 bg-[#0f172a] select-none">
+        <FluidBackground />
+        <LegacyMigrationModal isForced={true} />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen relative flex flex-col font-sans text-slate-900 bg-[#f4f8fd] select-none selection:bg-blue-200">
       {/* Dynamic Chromatic Caustics Aura Background */}
@@ -119,6 +130,9 @@ export const App: React.FC = () => {
 
       {/* Onboarding Modal for authenticated users who haven't selected grade */}
       <OnboardingModal />
+
+      {/* Guard fallback for legacy migration */}
+      <LegacyMigrationModal />
     </div>
   );
 };

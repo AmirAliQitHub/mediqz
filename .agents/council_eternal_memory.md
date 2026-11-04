@@ -118,3 +118,24 @@
     - If an unlinked desktop user opens TWA, they can link their existing credentials seamlessly via modal confirmation.
     - Profile management displays linked Telegram status with link/unlink safeguards.
 
+---
+
+## 9. MODULE 9 SCOPE: STRICT TRI-IDENTITY SEPARATION, DYNAMIC USERNAME CHANGE & LEGACY MIGRATION ENGINE
+- **Foundational Tri-Identity Architectural Law:**
+  1. `display_name` (Persian Full Name): Strictly for presentation, greetings, top bar, and certificates (e.g. «امیرعلی رخشانی»). Never acts as a unique credential or login key.
+  2. `username` (Mediqz ID / آیدی مدیاز): Strictly lowercase English alphanumeric + underscores (`^[a-z0-9_]{3,30}$`). The sole identity key for laptop/web login, magic login, and profile URLs. Legacy formats (`tg_...` or purely numeric) are strictly prohibited and must be migrated.
+  3. `telegram_user_id` & `telegram_username`: Internal automated Telegram bot link. User must NEVER be prompted to type, know, or see numeric Telegram IDs in login forms. Numeric ID authentication fallbacks in forms are completely removed.
+- **Key Deliverables:**
+  1. **Web & MiniApp Registration Redesign:**
+     - Mandatory tri-field registration on web: Persian `display_name`, unique `username` (with live debounced check via `/api/auth/check-username`), and secure `password` (min 4 chars).
+     - Telegram WebApp quick registration flow routes new students directly to full credentials completion (Persian name, Mediqz ID, password, grade) so no student remains un-onboarded with a numeric ID.
+  2. **Dynamic Username (Mediqz ID) Management in Profile (`UserAccountTab.tsx`):**
+     - Add interactive Mediqz ID editing card with real-time 400ms debounced availability check.
+     - New secure backend endpoint `POST /api/auth/change-username` with authentication check, collision prevention, regex validation, and state sync.
+  3. **Legacy Migration Engine (Blocking Modal):**
+     - Automatically flags any user with legacy username formats (`username.startswith('tg_')` or purely numeric, or un-onboarded/no password).
+     - Renders a non-bypassable, elegant liquid-glass modal:
+       «به‌روزرسانی حساب کاربری: لطفاً یک نام کاربری یکتا (آیدی مدیاز) و رمز عبور برای استفاده در لپ‌تاپ انتخاب فرمایید.»
+     - Blocks course access until a valid unique username and password are saved, guaranteeing 100% database schema uniformity and eliminating legacy technical debt.
+
+

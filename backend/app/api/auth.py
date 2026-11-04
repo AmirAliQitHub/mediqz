@@ -15,13 +15,42 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from app.core.config import DB_USER_PATH, TELEGRAM_BOT_TOKEN
 from app.core.database import get_user_db, get_or_create_telegram_user
 from app.core.security import hash_password, verify_password, generate_salt, generate_session_token
-from app.models.schemas import UserRegisterReq, UserLoginReq, UserResponse, TelegramAuthReq
+from app.models.schemas import UserRegisterReq, UserLoginReq, UserResponse, TelegramAuthReq, ChangeUsernameReq
 from app.api.deps import get_current_user
 
 logger = logging.getLogger("AuthAPI")
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-USERNAME_REGEX = re.compile(r"^[a-z0-9_]{3,30}$")
+USERNAME_REGEX = re.compile(r"^(?=.*[a-z0-9])[a-z0-9_]{3,30}$")
+RESERVED_USERNAMES = {
+    "admin", "system", "root", "mediqz", "support", "bot",
+    "official", "api", "auth", "null", "undefined"
+}
+
+
+def normalize_persian_text(text: str) -> str:
+    """
+    Normalizes Persian text (specifically display names) by standardizing
+    Arabic characters (ي -> ی, ك -> ک) while respecting Persian ZWNJ.
+    """
+    if not text:
+        return ""
+    return text.replace("ي", "ی").replace("ك", "ک").strip()
+
+
+def is_legacy_username(username: str | None) -> bool:
+    """
+    Returns True if username is empty, starts with 'tg_', is purely numeric,
+    contains only underscores, or is in reserved names.
+    """
+    if not username:
+        return True
+    clean = username.strip().lower()
+    if clean.startswith("tg_") or clean.isdigit() or clean in RESERVED_USERNAMES:
+        return True
+    if not USERNAME_REGEX.match(clean):
+        return True
+    return False
 
 
 def validate_telegram_init_data(init_data: str, bot_token: str | None = None) -> dict | None:
@@ -92,22 +121,35 @@ def validate_telegram_init_data(init_data: str, bot_token: str | None = None) ->
 
 
 @router.get("/check-username")
-def check_username(username: str):
+def check_username(username: str, exclude_user_id: Optional[int] = None):
     """
-    Council Mandate #7: Real-time availability checker for non-Telegram desktop username.
-    Enforces normalized lowercase and regex ^[a-z0-9_]{3,30}$.
+    Council Mandate #7 & Module 9: Real-time availability checker for Mediqz ID (username).
+    Enforces normalized lowercase, ^(?=.*[a-z0-9])[a-z0-9_]{3,30}$, no tg_ prefix,
+    no pure digits, reserved system name blacklisting, and self-collision exemption via exclude_user_id.
     """
     clean_username = username.strip().lower()
     if not clean_username:
         return {"available": False, "username": clean_username, "reason": "نام کاربری نمی‌تواند خالی باشد."}
+    if clean_username.isdigit():
+        return {"available": False, "username": clean_username, "reason": "نام کاربری نمی‌تواند صرفاً عدد باشد."}
+    if clean_username.startswith("tg_"):
+        return {"available": False, "username": clean_username, "reason": "استفاده از پیشوند tg_ مجاز نیست."}
+    if clean_username in RESERVED_USERNAMES:
+        return {"available": False, "username": clean_username, "reason": "این نام کاربری سیستمی و رزرو شده است."}
     if not USERNAME_REGEX.match(clean_username):
         return {
             "available": False,
             "username": clean_username,
-            "reason": "نام کاربری باید بین ۳ تا ۳۰ کاراکتر و فقط شامل حروف انگلیسی کوچک، اعداد و _ باشد."
+            "reason": "نام کاربری باید بین ۳ تا ۳۰ کاراکتر و فقط شامل حروف انگلیسی کوچک، اعداد و _ باشد (حداقل یک حرف یا عدد الزامی است)."
         }
     with get_user_db() as conn:
-        existing = conn.execute("SELECT id FROM users WHERE lower(username) = ?", (clean_username,)).fetchone()
+        if exclude_user_id:
+            existing = conn.execute(
+                "SELECT id FROM users WHERE lower(username) = ? AND id != ?",
+                (clean_username, exclude_user_id)
+            ).fetchone()
+        else:
+            existing = conn.execute("SELECT id FROM users WHERE lower(username) = ?", (clean_username,)).fetchone()
         if existing:
             return {"available": False, "username": clean_username, "reason": "این نام کاربری قبلاً ثبت شده است."}
         return {"available": True, "username": clean_username, "reason": None}
@@ -115,16 +157,25 @@ def check_username(username: str):
 
 @router.post("/register")
 def register(req: UserRegisterReq):
+    if not req.display_name or not req.display_name.strip():
+        raise HTTPException(status_code=400, detail="نام و نام خانوادگی به زبان فارسی الزامی است.")
+    disp_name = normalize_persian_text(req.display_name)
+
     username = req.username.strip().lower()
     if not username or len(req.password) < 4:
         raise HTTPException(status_code=400, detail="نام کاربری و رمز عبور حداقل ۴ کاراکتر الزامی است.")
+    if username.isdigit():
+        raise HTTPException(status_code=400, detail="نام کاربری نمی‌تواند صرفاً عدد باشد.")
+    if username.startswith("tg_"):
+        raise HTTPException(status_code=400, detail="استفاده از پیشوند tg_ مجاز نیست.")
+    if username in RESERVED_USERNAMES:
+        raise HTTPException(status_code=400, detail="این نام کاربری سیستمی و رزرو شده است.")
     if not USERNAME_REGEX.match(username):
         raise HTTPException(
             status_code=400,
-            detail="نام کاربری باید بین ۳ تا ۳۰ کاراکتر و فقط شامل حروف انگلیسی کوچک، اعداد و _ باشد."
+            detail="نام کاربری باید بین ۳ تا ۳۰ کاراکتر و فقط شامل حروف انگلیسی کوچک، اعداد و _ باشد (حداقل یک حرف یا عدد الزامی است)."
         )
 
-    disp_name = req.display_name.strip() if req.display_name else username
     is_su = 1 if (disp_name == "amirtaii8123" or username == "amirtaii8123") else 0
     access_lvl = "SUPERUSER" if is_su else "S2"
 
@@ -179,6 +230,7 @@ def register(req: UserRegisterReq):
                 "telegram_user_id": tg_user_id,
                 "telegram_username": tg_username,
                 "has_password": True,
+                "needs_legacy_migration": False,
             },
             "needs_onboarding": True
         }
@@ -187,14 +239,14 @@ def register(req: UserRegisterReq):
 @router.post("/login")
 def login(req: UserLoginReq):
     username = req.username.strip().lower()
+    if username.isdigit():
+        raise HTTPException(
+            status_code=400,
+            detail="ورود با شناسه عددی تلگرام پشتیبانی نمی‌شود. لطفاً از نام کاربری (آیدی مدیاز) یا ورود مستقیم تلگرام استفاده فرمایید."
+        )
+
     with get_user_db() as conn:
-        if username.isdigit():
-            user = conn.execute(
-                "SELECT * FROM users WHERE lower(username) = ? OR (telegram_user_id = ? AND telegram_user_id IS NOT NULL)",
-                (username, int(username))
-            ).fetchone()
-        else:
-            user = conn.execute("SELECT * FROM users WHERE lower(username) = ?", (username,)).fetchone()
+        user = conn.execute("SELECT * FROM users WHERE lower(username) = ?", (username,)).fetchone()
 
         if not user or not verify_password(req.password, user["salt"], user["password_hash"]):
             raise HTTPException(status_code=401, detail="نام کاربری یا رمز عبور اشتباه است.")
@@ -209,6 +261,8 @@ def login(req: UserLoginReq):
         is_su = bool(user["is_superuser"]) or (user["username"] == "amirtaii8123" or (user["display_name"] or "") == "amirtaii8123")
         access_lvl = "SUPERUSER" if is_su else (user["access_level"] or "S2")
 
+        needs_mig = is_legacy_username(user["username"]) or not bool(user["has_password"])
+
         return {
             "token": token,
             "user": {
@@ -221,7 +275,9 @@ def login(req: UserLoginReq):
                 "is_onboarded": bool(user["is_onboarded"]),
                 "is_superuser": is_su,
                 "telegram_user_id": user["telegram_user_id"],
+                "telegram_username": user["telegram_username"] if "telegram_username" in user.keys() else None,
                 "has_password": bool(user["has_password"]),
+                "needs_legacy_migration": needs_mig,
             },
             "needs_onboarding": not bool(user["is_onboarded"])
         }
@@ -265,6 +321,9 @@ def telegram_webapp_auth(payload: dict):
                      (token, user_id, now, exp))
         conn.commit()
 
+        needs_mig = is_legacy_username(user["username"]) or not bool(user["has_password"])
+        tg_uname = user["telegram_username"] if "telegram_username" in user.keys() else None
+
         return {
             "token": token,
             "user": {
@@ -277,7 +336,9 @@ def telegram_webapp_auth(payload: dict):
                 "is_onboarded": bool(user["is_onboarded"]),
                 "is_superuser": bool(is_su),
                 "telegram_user_id": user["telegram_user_id"],
+                "telegram_username": tg_uname,
                 "has_password": bool(user["has_password"]),
+                "needs_legacy_migration": needs_mig,
             },
             "needs_onboarding": not bool(user["is_onboarded"])
         }
@@ -286,6 +347,7 @@ def telegram_webapp_auth(payload: dict):
 def me(current_user: dict = Depends(get_current_user)):
     is_su = bool(current_user.get("is_superuser")) or (current_user.get("username") == "amirtaii8123" or current_user.get("display_name") == "amirtaii8123")
     access_lvl = "SUPERUSER" if is_su else (current_user.get("access_level") or "S2")
+    needs_mig = is_legacy_username(current_user.get("username")) or not bool(current_user.get("has_password", 0))
     return {
         "id": current_user["id"],
         "username": current_user["username"],
@@ -296,7 +358,9 @@ def me(current_user: dict = Depends(get_current_user)):
         "is_onboarded": bool(current_user.get("is_onboarded", 0)),
         "is_superuser": is_su,
         "telegram_user_id": current_user.get("telegram_user_id"),
+        "telegram_username": current_user.get("telegram_username"),
         "has_password": bool(current_user.get("has_password", 0)),
+        "needs_legacy_migration": needs_mig,
     }
 
 @router.post("/logout")
@@ -335,6 +399,9 @@ def telegram_login(payload: dict):
                      (token, user_id, now, exp))
         conn.commit()
 
+        needs_mig = is_legacy_username(user["username"]) or not bool(user["has_password"])
+        tg_uname = user["telegram_username"] if "telegram_username" in user.keys() else None
+
         return {
             "token": token,
             "user": {
@@ -347,14 +414,16 @@ def telegram_login(payload: dict):
                 "is_onboarded": bool(user["is_onboarded"]),
                 "is_superuser": bool(is_su),
                 "telegram_user_id": user["telegram_user_id"],
+                "telegram_username": tg_uname,
                 "has_password": bool(user["has_password"]),
+                "needs_legacy_migration": needs_mig,
             },
             "needs_onboarding": not bool(user["is_onboarded"])
         }
 
 @router.post("/onboarding")
 def complete_onboarding(payload: dict, current_user: dict = Depends(get_current_user)):
-    display_name = payload.get("display_name", "").strip()
+    display_name = normalize_persian_text(payload.get("display_name", ""))
     grade = payload.get("grade", "").strip()
     raw_username = payload.get("username", "").strip()
     raw_password = payload.get("password", "").strip()
@@ -376,10 +445,10 @@ def complete_onboarding(payload: dict, current_user: dict = Depends(get_current_
 
         if raw_username:
             clean_username = raw_username.strip().lower()
-            if not USERNAME_REGEX.match(clean_username):
+            if clean_username.isdigit() or clean_username.startswith("tg_") or clean_username in RESERVED_USERNAMES or not USERNAME_REGEX.match(clean_username):
                 raise HTTPException(
                     status_code=400,
-                    detail="نام کاربری نامعتبر است. فقط از حروف کوچک انگلیسی (a-z)، اعداد (0-9) و خط زیر (_) استفاده کنید (بین ۳ تا ۳۰ کاراکتر)."
+                    detail="نام کاربری نامعتبر است. فقط از حروف کوچک انگلیسی (a-z)، اعداد (0-9) و خط زیر (_) استفاده کنید (حداقل یک حرف یا عدد الزامی است)."
                 )
             if clean_username != (db_user["username"] or "").lower():
                 existing = conn.execute(
@@ -408,6 +477,7 @@ def complete_onboarding(payload: dict, current_user: dict = Depends(get_current_
         conn.commit()
 
         tg_uname = db_user["telegram_username"] if "telegram_username" in db_user.keys() else None
+        needs_mig = is_legacy_username(final_username) or not bool(has_pwd)
 
     return {
         "success": True,
@@ -423,6 +493,7 @@ def complete_onboarding(payload: dict, current_user: dict = Depends(get_current_
             "telegram_user_id": db_user["telegram_user_id"],
             "telegram_username": tg_uname,
             "has_password": bool(has_pwd),
+            "needs_legacy_migration": needs_mig,
         }
     }
 
@@ -454,18 +525,17 @@ async def request_magic_login(payload: dict, request: Request):
         raise HTTPException(status_code=400, detail="لطفاً نام کاربری خود را وارد فرمایید.")
 
     clean_ident = raw_ident.lstrip("@").lower()
+    if clean_ident.isdigit():
+        raise HTTPException(
+            status_code=400,
+            detail="ورود با شناسه عددی تلگرام پشتیبانی نمی‌شود. لطفاً از نام کاربری (آیدی مدیاز) یا ورود مستقیم تلگرام استفاده فرمایید."
+        )
 
     with get_user_db() as conn:
-        if clean_ident.isdigit():
-            user = conn.execute(
-                "SELECT * FROM users WHERE telegram_user_id = ? OR lower(username) = ?",
-                (int(clean_ident), clean_ident)
-            ).fetchone()
-        else:
-            user = conn.execute(
-                "SELECT * FROM users WHERE lower(username) = ? OR lower(telegram_username) = ?",
-                (clean_ident, clean_ident)
-            ).fetchone()
+        user = conn.execute(
+            "SELECT * FROM users WHERE lower(username) = ? OR lower(telegram_username) = ?",
+            (clean_ident, clean_ident)
+        ).fetchone()
 
         if not user:
             raise HTTPException(status_code=404, detail="کاربری با این نام کاربری یافت نشد.")
@@ -607,6 +677,9 @@ def poll_magic_login(nonce: str):
         is_su = bool(user["is_superuser"]) or (user["username"] == "amirtaii8123" or (user["display_name"] or "") == "amirtaii8123")
         access_lvl = "SUPERUSER" if is_su else (user["access_level"] or "S2")
 
+        needs_mig = is_legacy_username(user["username"]) or not bool(user["has_password"])
+        tg_uname = user["telegram_username"] if "telegram_username" in user.keys() else None
+
         return {
             "status": "approved",
             "token": token,
@@ -620,7 +693,9 @@ def poll_magic_login(nonce: str):
                 "is_onboarded": bool(user["is_onboarded"]),
                 "is_superuser": is_su,
                 "telegram_user_id": user["telegram_user_id"],
+                "telegram_username": tg_uname,
                 "has_password": bool(user["has_password"]),
+                "needs_legacy_migration": needs_mig,
             },
             "needs_onboarding": not bool(user["is_onboarded"])
         }
@@ -700,6 +775,8 @@ def link_telegram_account(payload: dict, request: Request):
             conn.commit()
             is_su = bool(user["is_superuser"]) or (user["username"] == "amirtaii8123" or (user["display_name"] or "") == "amirtaii8123")
             access_lvl = "SUPERUSER" if is_su else (user["access_level"] or "S2")
+            needs_mig = is_legacy_username(user["username"]) or not bool(user["has_password"])
+            tg_uname = user["telegram_username"] if "telegram_username" in user.keys() else None
             return {
                 "success": True,
                 "message": "حساب کاربری شما از قبل به این تلگرام متصل است.",
@@ -714,7 +791,9 @@ def link_telegram_account(payload: dict, request: Request):
                     "is_onboarded": bool(user["is_onboarded"]),
                     "is_superuser": is_su,
                     "telegram_user_id": user["telegram_user_id"],
+                    "telegram_username": tg_uname,
                     "has_password": bool(user["has_password"]),
+                    "needs_legacy_migration": needs_mig,
                 },
                 "needs_onboarding": not bool(user["is_onboarded"])
             }
@@ -761,6 +840,7 @@ def link_telegram_account(payload: dict, request: Request):
 
         is_su = bool(user["is_superuser"]) or (user["username"] == "amirtaii8123" or (user["display_name"] or "") == "amirtaii8123")
         access_lvl = "SUPERUSER" if is_su else (user["access_level"] or "S2")
+        needs_mig = is_legacy_username(user["username"]) or not bool(user["has_password"])
 
         return {
             "success": True,
@@ -776,7 +856,9 @@ def link_telegram_account(payload: dict, request: Request):
                 "is_onboarded": bool(user["is_onboarded"]),
                 "is_superuser": is_su,
                 "telegram_user_id": tg_id,
+                "telegram_username": tg_username,
                 "has_password": bool(user["has_password"]),
+                "needs_legacy_migration": needs_mig,
             },
             "needs_onboarding": not bool(user["is_onboarded"])
         }
@@ -803,6 +885,89 @@ def unlink_telegram(current_user: dict = Depends(get_current_user)):
         conn.commit()
 
     return {"success": True, "message": "اتصال به تلگرام با موفقیت قطع گردید."}
+
+
+@router.post("/change-username")
+def change_username(req: ChangeUsernameReq, current_user: dict = Depends(get_current_user)):
+    """
+    Council Mandate & Module 9: Allows authenticated user to update their Mediqz ID (username),
+    set/update password, and update display name.
+    Validates regex ^(?=.*[a-z0-9])[a-z0-9_]{3,30}$, rejects legacy formats (tg_, pure digits) and reserved names.
+    Enforces collision prevention against other users.
+    """
+    new_username = req.new_username.strip().lower()
+    if not new_username:
+        raise HTTPException(status_code=400, detail="نام کاربری جدید الزامی است.")
+    if new_username.isdigit():
+        raise HTTPException(status_code=400, detail="نام کاربری نمی‌تواند صرفاً عدد باشد.")
+    if new_username.startswith("tg_"):
+        raise HTTPException(status_code=400, detail="استفاده از پیشوند tg_ مجاز نیست.")
+    if new_username in RESERVED_USERNAMES:
+        raise HTTPException(status_code=400, detail="این نام کاربری رزرو شده و غیرقابل استفاده است.")
+    if not USERNAME_REGEX.match(new_username):
+        raise HTTPException(
+            status_code=400,
+            detail="نام کاربری باید بین ۳ تا ۳۰ کاراکتر و فقط شامل حروف کوچک انگلیسی، اعداد و _ باشد (حداقل یک حرف یا عدد الزامی است)."
+        )
+
+    with get_user_db() as conn:
+        collision = conn.execute(
+            "SELECT id FROM users WHERE lower(username) = ? AND id != ?",
+            (new_username, current_user["id"])
+        ).fetchone()
+        if collision:
+            raise HTTPException(status_code=400, detail="این نام کاربری قبلاً توسط کاربر دیگری انتخاب شده است.")
+
+        db_user = conn.execute("SELECT * FROM users WHERE id = ?", (current_user["id"],)).fetchone()
+        if not db_user:
+            raise HTTPException(status_code=404, detail="کاربر یافت نشد.")
+
+        updates = ["username = ?"]
+        params = [new_username]
+
+        if req.password is not None:
+            clean_pwd = req.password.strip()
+            if len(clean_pwd) < 4:
+                raise HTTPException(status_code=400, detail="رمز عبور باید حداقل ۴ کاراکتر باشد.")
+            new_salt = generate_salt()
+            new_pwd_hash = hash_password(clean_pwd, new_salt)
+            updates.extend(["password_hash = ?", "salt = ?", "has_password = 1"])
+            params.extend([new_pwd_hash, new_salt])
+
+        if req.display_name and req.display_name.strip():
+            norm_name = normalize_persian_text(req.display_name)
+            updates.append("display_name = ?")
+            params.append(norm_name)
+
+        params.append(current_user["id"])
+        conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
+        conn.commit()
+
+        updated_user = conn.execute("SELECT * FROM users WHERE id = ?", (current_user["id"],)).fetchone()
+        is_su = bool(updated_user["is_superuser"]) or (updated_user["username"] == "amirtaii8123" or (updated_user["display_name"] or "") == "amirtaii8123")
+        access_lvl = "SUPERUSER" if is_su else (updated_user["access_level"] or "S2")
+
+        needs_mig = is_legacy_username(updated_user["username"]) or not bool(updated_user["has_password"])
+        tg_uname = updated_user["telegram_username"] if "telegram_username" in updated_user.keys() else None
+
+        return {
+            "success": True,
+            "message": "نام کاربری با موفقیت به‌روزرسانی شد.",
+            "user": {
+                "id": updated_user["id"],
+                "username": updated_user["username"],
+                "display_name": updated_user["display_name"],
+                "avatar_url": updated_user["avatar_url"] or "",
+                "access_level": access_lvl,
+                "grade": updated_user["grade"] or "",
+                "is_onboarded": bool(updated_user["is_onboarded"]),
+                "is_superuser": is_su,
+                "telegram_user_id": updated_user["telegram_user_id"],
+                "telegram_username": tg_uname,
+                "has_password": bool(updated_user["has_password"]),
+                "needs_legacy_migration": needs_mig,
+            }
+        }
 
 
 

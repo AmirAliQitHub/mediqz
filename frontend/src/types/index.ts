@@ -12,6 +12,7 @@ export interface User {
   telegram_user_id?: number | null;
   telegram_username?: string | null;
   has_password?: boolean;
+  needs_legacy_migration?: boolean;
 }
 
 export interface AdminUser {

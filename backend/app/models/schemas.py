@@ -30,6 +30,14 @@ class UserResponse(BaseModel):
     is_onboarded: Optional[bool] = False
     is_superuser: Optional[bool] = False
     telegram_user_id: Optional[int] = None
+    telegram_username: Optional[str] = None
+    has_password: Optional[bool] = False
+    needs_legacy_migration: Optional[bool] = False
+
+class ChangeUsernameReq(BaseModel):
+    new_username: str
+    password: Optional[str] = None
+    display_name: Optional[str] = None
 
 class CourseCompleteReq(BaseModel):
     course_id: str

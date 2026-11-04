@@ -16,11 +16,22 @@ interface AuthState {
   loginWithTelegram: () => Promise<boolean>;
   loginWithCredentials: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
   registerWithCredentials: (username: string, password: string, displayName: string) => Promise<{ success: boolean; error?: string }>;
+  changeUsername: (newUsername: string, password?: string, displayName?: string) => Promise<{ success: boolean; error?: string; user?: User }>;
   completeOnboarding: (displayName: string, grade: string, username?: string, password?: string) => Promise<void>;
   setUserPasswordStatus: (hasPassword: boolean) => void;
   unlinkTelegram: () => Promise<boolean>;
   logout: () => Promise<void>;
 }
+
+export const isLegacyUser = (user: User | null): boolean => {
+  if (!user) return false;
+  if (user.needs_legacy_migration) return true;
+  const uname = (user.username || '').trim().toLowerCase();
+  if (!uname || uname.startsWith('tg_') || /^\d+$/.test(uname)) return true;
+  if (!/^(?=.*[a-z0-9])[a-z0-9_]{3,30}$/.test(uname)) return true;
+  if (!user.has_password) return true;
+  return false;
+};
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -189,6 +200,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     } catch (err: any) {
       set({ isLoading: false });
       return { success: false, error: err?.message || 'خطا در ثبت نام' };
+    }
+  },
+
+  changeUsername: async (newUsername: string, password?: string, displayName?: string) => {
+    set({ isLoading: true });
+    try {
+      const payload: Record<string, any> = {
+        new_username: newUsername.trim().toLowerCase(),
+      };
+      if (password && password.trim()) {
+        payload.password = password.trim();
+      }
+      if (displayName && displayName.trim()) {
+        payload.display_name = displayName.trim();
+      }
+      const res = await api.post<{ success: boolean; user: User; message?: string }>(
+        '/auth/change-username',
+        payload
+      );
+      if (res && res.user) {
+        set({ user: res.user, isLoading: false });
+        return { success: true, user: res.user };
+      }
+      set({ isLoading: false });
+      return { success: false, error: 'پاسخی از سرور دریافت نشد.' };
+    } catch (err: any) {
+      set({ isLoading: false });
+      return { success: false, error: err?.message || 'خطا در تغییر نام کاربری.' };
     }
   },
 
