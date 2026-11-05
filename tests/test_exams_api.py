@@ -33,6 +33,34 @@ class TestExamsAPI(unittest.TestCase):
         self.assertIsInstance(data, list)
         exam_ids = [e["id"] for e in data]
         self.assertIn("M10T-405Mehr17", exam_ids)
+        self.assertIn("MD12T-405Aba22", exam_ids)
+
+    def test_get_duel_mediqz_exam_detail(self):
+        resp = self.client.get("/api/exams/MD12T-405Aba22")
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        self.assertEqual(data["id"], "MD12T-405Aba22")
+        self.assertEqual(len(data["questions"]), 140)
+        self.assertEqual(len(data["sections"]), 4)
+
+        # Verify Q1 (Bio)
+        q1 = data["questions"][0]
+        self.assertEqual(q1["utid"], "MD12T-405Aba22-B1")
+        self.assertEqual(q1["subject"], "زیست‌شناسی")
+        self.assertEqual(q1["correct_opt"], 2)
+        self.assertEqual(q1["topic_id"], "B10C2S20")
+        self.assertTrue(len(q1["topic_title"]) > 0)
+        self.assertEqual(q1["question_type"], "Nokat Shekl")
+        self.assertEqual(q1["question_type_fa"], "نکات شکل")
+        self.assertEqual(q1["time_taking_profile"], "Standard")
+        self.assertEqual(q1["time_profile_fa"], "استاندارد")
+
+        # Verify Q140 (Math)
+        q140 = data["questions"][-1]
+        self.assertEqual(q140["utid"], "MD12T-405Aba22-M140")
+        self.assertEqual(q140["subject"], "ریاضی")
+        self.assertEqual(q140["topic_id"], "M12C5S3")
+        self.assertTrue(len(q140["topic_title"]) > 0)
 
     def test_get_exam_detail(self):
         resp = self.client.get("/api/exams/M10T-405Mehr17")

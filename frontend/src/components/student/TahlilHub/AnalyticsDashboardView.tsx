@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTahlilStore, EvaluationMode } from '../../../store/useTahlilStore';
+import { toPersianDigits } from '../../../utils/shamsiCalendar';
 import {
   BarChart3,
   Calendar,
@@ -57,7 +58,7 @@ export const AnalyticsDashboardView: React.FC = () => {
   const scoreDelta = Math.max(0, outsideScore - inExamScore);
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-6 animate-fadeIn" dir="rtl">
+    <div className="w-full max-w-6xl mx-auto px-4 py-6 pb-32 animate-fadeIn" dir="rtl">
       {/* Top Header Card */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 sm:p-6 rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/80 shadow-md mb-6">
         <div className="flex items-center gap-3">
@@ -151,9 +152,9 @@ export const AnalyticsDashboardView: React.FC = () => {
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span>⏱️ شرایط آزمون (In-Exam)</span>
-            <span className="px-1.5 py-0.2 rounded-md bg-black/30 font-mono text-[11px]">
-              {inExamScore}%
+            <span className="whitespace-nowrap">⏱️ شرایط آزمون</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-black/30 font-mono text-[11px] whitespace-nowrap">
+              {toPersianDigits(inExamScore)}٪
             </span>
           </button>
 
@@ -166,9 +167,9 @@ export const AnalyticsDashboardView: React.FC = () => {
                 : 'text-slate-300 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span>خارج از شرایط آزمون (Outside Exam)</span>
-            <span className="px-1.5 py-0.2 rounded-md bg-black/30 font-mono text-[11px]">
-              {outsideScore}%
+            <span className="whitespace-nowrap">خارج از آزمون</span>
+            <span className="px-1.5 py-0.2 rounded-md bg-black/30 font-mono text-[11px] whitespace-nowrap">
+              {toPersianDigits(outsideScore)}٪
             </span>
           </button>
         </div>
@@ -189,21 +190,21 @@ export const AnalyticsDashboardView: React.FC = () => {
 
           <div className="flex items-baseline gap-2 my-2">
             <span className="text-5xl sm:text-6xl font-black font-mono tracking-tight text-slate-900">
-              {currentDataset.score_pct}
+              {toPersianDigits(currentDataset.score_pct)}
             </span>
             <span className="text-2xl font-black text-slate-500 font-mono">٪</span>
           </div>
 
           <div className="text-[11px] text-slate-500 font-mono mb-4">
-            (۳ × {currentDataset.correct_count} - {currentDataset.wrong_count}) ÷ (۳ ×{' '}
-            {currentDataset.total_questions})
+            (۳ × {toPersianDigits(currentDataset.correct_count)} - {toPersianDigits(currentDataset.wrong_count)}) ÷ (۳ ×{' '}
+            {toPersianDigits(currentDataset.total_questions)})
           </div>
 
           {activeMode === 'outside_exam' && scoreDelta > 0 && (
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-bold">
               <TrendingUp className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>
-                رشد +{scoreDelta.toFixed(1)}٪ با رفع خطاهای زمان و بی‌دقتی خارج از شرایط آزمون
+                رشد +{toPersianDigits(scoreDelta.toFixed(1))}٪ با رفع خطاهای زمان و بی‌دقتی خارج از شرایط آزمون
               </span>
             </div>
           )}
@@ -216,12 +217,12 @@ export const AnalyticsDashboardView: React.FC = () => {
             <span className="text-xs font-bold text-slate-600">پاسخ‌های صحیح</span>
             <div className="flex items-baseline gap-1.5 my-3">
               <span className="text-3xl font-black font-mono text-emerald-600">
-                {currentDataset.correct_count}
+                {toPersianDigits(currentDataset.correct_count)}
               </span>
-              <span className="text-xs text-slate-400 font-mono">/ {currentDataset.total_questions}</span>
+              <span className="text-xs text-slate-400 font-mono">/ {toPersianDigits(currentDataset.total_questions)}</span>
             </div>
             <span className="text-xs font-bold text-emerald-700 font-mono">
-              {((currentDataset.correct_count / currentDataset.total_questions) * 100).toFixed(1)}٪ کل
+              {toPersianDigits(((currentDataset.correct_count / currentDataset.total_questions) * 100).toFixed(1))}٪ کل
             </span>
           </div>
 
@@ -230,12 +231,12 @@ export const AnalyticsDashboardView: React.FC = () => {
             <span className="text-xs font-bold text-slate-600">پاسخ‌های اشتباه</span>
             <div className="flex items-baseline gap-1.5 my-3">
               <span className="text-3xl font-black font-mono text-rose-600">
-                {currentDataset.wrong_count}
+                {toPersianDigits(currentDataset.wrong_count)}
               </span>
-              <span className="text-xs text-slate-400 font-mono">/ {currentDataset.total_questions}</span>
+              <span className="text-xs text-slate-400 font-mono">/ {toPersianDigits(currentDataset.total_questions)}</span>
             </div>
             <span className="text-xs font-bold text-rose-700 font-mono">
-              {((currentDataset.wrong_count / currentDataset.total_questions) * 100).toFixed(1)}٪ کل
+              {toPersianDigits(((currentDataset.wrong_count / currentDataset.total_questions) * 100).toFixed(1))}٪ کل
             </span>
           </div>
 
@@ -244,12 +245,12 @@ export const AnalyticsDashboardView: React.FC = () => {
             <span className="text-xs font-bold text-slate-600">نزده / سفید</span>
             <div className="flex items-baseline gap-1.5 my-3">
               <span className="text-3xl font-black font-mono text-slate-700">
-                {currentDataset.blank_count}
+                {toPersianDigits(currentDataset.blank_count)}
               </span>
-              <span className="text-xs text-slate-400 font-mono">/ {currentDataset.total_questions}</span>
+              <span className="text-xs text-slate-400 font-mono">/ {toPersianDigits(currentDataset.total_questions)}</span>
             </div>
             <span className="text-xs font-bold text-slate-600 font-mono">
-              {((currentDataset.blank_count / currentDataset.total_questions) * 100).toFixed(1)}٪ کل
+              {toPersianDigits(((currentDataset.blank_count / currentDataset.total_questions) * 100).toFixed(1))}٪ کل
             </span>
           </div>
         </div>
@@ -271,12 +272,12 @@ export const AnalyticsDashboardView: React.FC = () => {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-sm font-black text-slate-900">{s.subject}</span>
                 <span className="px-2 py-0.5 rounded-lg bg-blue-50 text-blue-800 text-xs font-mono font-black">
-                  {s.total} سوال
+                  {toPersianDigits(s.total)} سوال
                 </span>
               </div>
 
               <div className="flex items-baseline gap-1 mb-2">
-                <span className="text-3xl font-black font-mono text-blue-950">{s.score_pct}</span>
+                <span className="text-3xl font-black font-mono text-blue-950">{toPersianDigits(s.score_pct)}</span>
                 <span className="text-sm font-mono text-slate-500 font-bold">٪</span>
               </div>
 
@@ -290,9 +291,9 @@ export const AnalyticsDashboardView: React.FC = () => {
 
               {/* Counters */}
               <div className="flex items-center justify-between text-[11px] text-slate-600 font-mono font-bold pt-2 border-t border-slate-100">
-                <span className="text-emerald-700">صحیح: {s.correct}</span>
-                <span className="text-rose-700">غلط: {s.wrong}</span>
-                <span className="text-slate-500">سفید: {s.blank}</span>
+                <span className="text-emerald-700">صحیح: {toPersianDigits(s.correct)}</span>
+                <span className="text-rose-700">غلط: {toPersianDigits(s.wrong)}</span>
+                <span className="text-slate-500">سفید: {toPersianDigits(s.blank)}</span>
               </div>
             </div>
           ))}
@@ -323,13 +324,13 @@ export const AnalyticsDashboardView: React.FC = () => {
                       }`}
                     />
                     <span>سطح {d.difficulty}</span>
-                    <span className="text-[10px] text-slate-400 font-mono">({d.total} سوال)</span>
+                    <span className="text-[10px] text-slate-400 font-mono">({toPersianDigits(d.total)} سوال)</span>
                   </span>
                   <div className="flex items-center gap-2 font-mono font-bold">
                     <span className="text-slate-500 text-[11px]">
-                      {d.correct} صحیح از {d.total}
+                      {toPersianDigits(d.correct)} صحیح از {toPersianDigits(d.total)}
                     </span>
-                    <span className="text-slate-900 font-black">{d.score_pct}%</span>
+                    <span className="text-slate-900 font-black">{toPersianDigits(d.score_pct)}٪</span>
                   </div>
                 </div>
 
@@ -365,13 +366,13 @@ export const AnalyticsDashboardView: React.FC = () => {
                     <span className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-200">
                       {tp.profile_fa}
                     </span>
-                    <span className="text-[10px] text-slate-400 font-mono">({tp.total} سوال)</span>
+                    <span className="text-[10px] text-slate-400 font-mono">({toPersianDigits(tp.total)} سوال)</span>
                   </span>
                   <div className="flex items-center gap-2 font-mono font-bold">
                     <span className="text-slate-500 text-[11px]">
-                      {tp.correct} صحیح از {tp.total}
+                      {toPersianDigits(tp.correct)} صحیح از {toPersianDigits(tp.total)}
                     </span>
-                    <span className="text-slate-900 font-black">{tp.score_pct}%</span>
+                    <span className="text-slate-900 font-black">{toPersianDigits(tp.score_pct)}٪</span>
                   </div>
                 </div>
 
@@ -402,14 +403,14 @@ export const AnalyticsDashboardView: React.FC = () => {
             >
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-black text-slate-800">{qt.type_fa}</span>
-                <span className="text-[10px] font-mono text-slate-400">{qt.total} سوال</span>
+                <span className="text-[10px] font-mono text-slate-400">{toPersianDigits(qt.total)} سوال</span>
               </div>
               <div className="flex items-baseline gap-1 my-1">
-                <span className="text-xl font-black font-mono text-purple-900">{qt.score_pct}</span>
+                <span className="text-xl font-black font-mono text-purple-900">{toPersianDigits(qt.score_pct)}</span>
                 <span className="text-xs font-mono text-slate-400">٪</span>
               </div>
               <span className="text-[10px] font-mono font-bold text-slate-500">
-                {qt.correct} صحیح / {qt.wrong} غلط
+                {toPersianDigits(qt.correct)} صحیح / {toPersianDigits(qt.wrong)} غلط
               </span>
             </div>
           ))}
@@ -429,7 +430,7 @@ export const AnalyticsDashboardView: React.FC = () => {
               key={er.reason}
               className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex flex-col items-center justify-center text-center"
             >
-              <span className="text-2xl font-mono font-black text-rose-600 mb-1">{er.count}</span>
+              <span className="text-2xl font-mono font-black text-rose-600 mb-1">{toPersianDigits(er.count)}</span>
               <span className="text-xs font-bold text-slate-700">{er.reason}</span>
             </div>
           ))}
@@ -444,7 +445,7 @@ export const AnalyticsDashboardView: React.FC = () => {
             <span>مرتب‌سازی سوالات بر مبنای سرفصل‌های دیتابیس (TopicID Taxonomy)</span>
           </h3>
           <span className="text-[11px] font-mono text-slate-500 font-bold">
-            {currentDataset.topics.length} زیرمبحث
+            {toPersianDigits(currentDataset.topics.length)} زیرمبحث
           </span>
         </div>
 
@@ -472,9 +473,9 @@ export const AnalyticsDashboardView: React.FC = () => {
                       {t.subject}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-center font-mono font-bold">{t.total}</td>
+                  <td className="py-2.5 px-3 text-center font-mono font-bold">{toPersianDigits(t.total)}</td>
                   <td className="py-2.5 px-3 text-center font-mono font-bold text-emerald-600">
-                    {t.correct}
+                    {toPersianDigits(t.correct)}
                   </td>
                   <td className="py-2.5 px-3 text-center">
                     <span
@@ -482,7 +483,7 @@ export const AnalyticsDashboardView: React.FC = () => {
                         t.score_pct >= 50 ? 'text-emerald-700' : 'text-slate-800'
                       }`}
                     >
-                      {t.score_pct}%
+                      {toPersianDigits(t.score_pct)}٪
                     </span>
                   </td>
                 </tr>

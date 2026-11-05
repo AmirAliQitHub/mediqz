@@ -12,6 +12,8 @@ import { tahlilService } from '../services/tahlilService';
 export type TahlilView = 'catalog' | 'dashboard' | 'keypad' | 'journal';
 export type EvaluationMode = 'in_exam' | 'outside_exam';
 
+const getDraftStorageKey = (examId: string) => `mediqz_tahlil_draft_${examId}`;
+
 interface TahlilState {
   exams: ExamSummary[];
   activeExam: (ExamSummary & { questions: ExamQuestion[] }) | null;
@@ -133,13 +135,39 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
         }
       }
 
-      const hasKeypad = Object.keys(existingKeypad).length > 0;
-      if (!hasKeypad) {
+      // Restore local draft if exists and not already submitted
+      try {
+        const localDraft = localStorage.getItem(getDraftStorageKey(examId));
+        if (localDraft) {
+          const parsed = JSON.parse(localDraft);
+          if (parsed && typeof parsed === 'object') {
+            for (const [k, v] of Object.entries(parsed)) {
+              if (!existingKeypad[k]) {
+                existingKeypad[k] = v as KeypadAnswerValue;
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // Check if analysis was actually submitted to backend
+      const isSubmittedToBackend = Boolean(
+        userAnalysis &&
+        userAnalysis.status &&
+        userAnalysis.status !== 'not_started' &&
+        userAnalysis.phase1_answers &&
+        Object.keys(userAnalysis.phase1_answers).length > 0
+      );
+
+      if (!isSubmittedToBackend) {
+        // Active draft or new attempt stays on keypad
         targetView = 'keypad';
+      } else if (userAnalysis.status === 'phase1') {
+        targetView = 'journal';
+        get().loadMetrics(examId).catch(() => {});
       } else {
         targetView = 'dashboard';
-        // Auto-load metrics
-        get().loadMetrics(examId);
+        get().loadMetrics(examId).catch(() => {});
       }
 
       set({
@@ -157,7 +185,7 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
   },
 
   setKeypadAnswer: (qNum: number, option: number) => {
-    const { questions, keypadAnswers, selectedQuestionIndex } = get();
+    const { questions, keypadAnswers, selectedQuestionIndex, activeExam } = get();
     const q = questions.find((item) => item.q_num === qNum);
     const correctOpt = q ? q.correct_opt : 0;
 
@@ -175,6 +203,12 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
       [String(qNum)]: { option, status },
     };
 
+    if (activeExam) {
+      try {
+        localStorage.setItem(getDraftStorageKey(activeExam.id), JSON.stringify(updated));
+      } catch {}
+    }
+
     let nextIndex = selectedQuestionIndex;
     if (selectedQuestionIndex < questions.length - 1) {
       nextIndex = selectedQuestionIndex + 1;
@@ -187,13 +221,18 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
   },
 
   markRemainingBlank: () => {
-    const { questions, keypadAnswers } = get();
+    const { questions, keypadAnswers, activeExam } = get();
     const updated = { ...keypadAnswers };
     for (const q of questions) {
       const key = String(q.q_num);
       if (!updated[key]) {
         updated[key] = { option: 0, status: 'blank' };
       }
+    }
+    if (activeExam) {
+      try {
+        localStorage.setItem(getDraftStorageKey(activeExam.id), JSON.stringify(updated));
+      } catch {}
     }
     set({ keypadAnswers: updated });
   },
@@ -205,6 +244,9 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await tahlilService.submitKeypad(activeExam.id, keypadAnswers);
+      try {
+        localStorage.removeItem(getDraftStorageKey(activeExam.id));
+      } catch {}
       await get().loadMetrics(activeExam.id);
       set({ activeView: 'journal', isLoading: false });
     } catch (err: any) {
@@ -241,9 +283,10 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const metrics = await tahlilService.getMetrics(examId);
-      set({ metrics, isLoading: false });
+      set({ metrics, isLoading: false, error: null });
     } catch (err: any) {
-      set({ error: err.message || 'خطا در دریافت آمار آزمون', isLoading: false });
+      // Gracefully handle not_started or uncalculated metrics without trapping the user
+      set({ error: null, isLoading: false });
     }
   },
 
@@ -254,6 +297,9 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       await tahlilService.resetAnalysis(activeExam.id);
+      try {
+        localStorage.removeItem(getDraftStorageKey(activeExam.id));
+      } catch {}
       set({
         keypadAnswers: {},
         journalEntries: {},

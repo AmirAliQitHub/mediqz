@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTahlilStore } from '../../../store/useTahlilStore';
 import { ExamQuestion } from '../../../types/tahlil';
+import { toPersianDigits } from '../../../utils/shamsiCalendar';
 
 interface QuestionGridProps {
   questions: ExamQuestion[];
@@ -8,19 +9,48 @@ interface QuestionGridProps {
   currentIndex: number;
 }
 
+const SUBJECT_COLORS: Record<string, string> = {
+  'زیست‌شناسی': 'text-emerald-700 bg-emerald-50 border-emerald-200',
+  'ریاضی': 'text-blue-700 bg-blue-50 border-blue-200',
+  'فیزیک': 'text-purple-700 bg-purple-50 border-purple-200',
+  'شیمی': 'text-amber-700 bg-amber-50 border-amber-200',
+};
+
 export const QuestionGrid: React.FC<QuestionGridProps> = ({
   questions,
   onSelectQuestion,
   currentIndex,
 }) => {
-  const { phase1Answers } = useTahlilStore();
+  const { activeExam, phase1Answers } = useTahlilStore();
 
-  const sections = [
-    { title: 'زیست‌شناسی', start: 1, end: 30, color: 'text-emerald-700 bg-emerald-50 border-emerald-200' },
-    { title: 'ریاضی', start: 31, end: 50, color: 'text-blue-700 bg-blue-50 border-blue-200' },
-    { title: 'فیزیک', start: 51, end: 70, color: 'text-purple-700 bg-purple-50 border-purple-200' },
-    { title: 'شیمی', start: 71, end: 90, color: 'text-amber-700 bg-amber-50 border-amber-200' },
-  ];
+  // Dynamic sections: use activeExam.sections or derive from questions
+  const sections = React.useMemo(() => {
+    if (activeExam?.sections && activeExam.sections.length > 0) {
+      return activeExam.sections.map((sec) => ({
+        title: sec.subject,
+        start: sec.start_q,
+        end: sec.end_q,
+        color: SUBJECT_COLORS[sec.subject] || 'text-indigo-700 bg-indigo-50 border-indigo-200',
+      }));
+    }
+
+    // Fallback: group contiguous subjects from questions
+    const groups: { title: string; start: number; end: number; color: string }[] = [];
+    questions.forEach((q) => {
+      const lastGroup = groups[groups.length - 1];
+      if (lastGroup && lastGroup.title === q.subject) {
+        lastGroup.end = q.q_num;
+      } else {
+        groups.push({
+          title: q.subject,
+          start: q.q_num,
+          end: q.q_num,
+          color: SUBJECT_COLORS[q.subject] || 'text-indigo-700 bg-indigo-50 border-indigo-200',
+        });
+      }
+    });
+    return groups;
+  }, [activeExam?.sections, questions]);
 
   return (
     <div className="flex flex-col gap-4 p-4 rounded-3xl bg-white/80 backdrop-blur-xl border border-white/90 shadow-sm" dir="rtl">
@@ -29,14 +59,16 @@ export const QuestionGrid: React.FC<QuestionGridProps> = ({
           (q) => q.q_num >= sec.start && q.q_num <= sec.end
         );
 
+        const answeredInSec = secQuestions.filter((q) => phase1Answers[String(q.q_num)]).length;
+
         return (
-          <div key={sec.title} className="flex flex-col gap-2">
+          <div key={`${sec.title}-${sec.start}`} className="flex flex-col gap-2">
             <div className="flex items-center justify-between px-1">
               <span className={`px-2 py-0.5 rounded-lg text-[11px] font-black border ${sec.color}`}>
-                {sec.title} (سوال {sec.start} تا {sec.end})
+                {sec.title} (سوال {toPersianDigits(sec.start)} تا {toPersianDigits(sec.end)})
               </span>
               <span className="text-[10px] text-slate-500 font-mono">
-                {secQuestions.filter((q) => phase1Answers[String(q.q_num)]).length} / {secQuestions.length}
+                {toPersianDigits(answeredInSec)} / {toPersianDigits(secQuestions.length)}
               </span>
             </div>
 
@@ -66,9 +98,9 @@ export const QuestionGrid: React.FC<QuestionGridProps> = ({
                         ? 'ring-2 ring-blue-600 ring-offset-2 scale-110 z-10 font-bold'
                         : 'opacity-95 hover:opacity-100'
                     }`}
-                    title={`سوال ${qNum}: ${status || 'ثبت نشده'}`}
+                    title={`سوال ${toPersianDigits(qNum)}: ${status || 'ثبت نشده'}`}
                   >
-                    {qNum}
+                    {toPersianDigits(qNum)}
                   </button>
                 );
               })}

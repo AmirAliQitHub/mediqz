@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTahlilStore } from '../../../store/useTahlilStore';
+import { toPersianDigits } from '../../../utils/shamsiCalendar';
 import {
   ArrowRight,
   ArrowLeft,
@@ -19,6 +20,21 @@ import {
   ErrorReasonTag,
   OutsideStatusTag,
 } from '../../../types/tahlil';
+
+const QUESTION_TYPE_LOCALIZED: Record<string, string> = {
+  'Mafhoomi': 'مفهومی',
+  'Mohasebati': 'محاسباتی',
+  'Tarkibi': 'ترکیبی',
+  'Nokat Shekl': 'نکات شکل',
+  'Hefzi': 'حفظی',
+  'Nemoodari': 'نموداری',
+};
+
+const TIME_PROFILE_LOCALIZED: Record<string, string> = {
+  'Fast': 'سریع (زیر ۶۰ ثانیه)',
+  'Standard': 'استاندارد (۶۰ تا ۹۰ ثانیه)',
+  'Long af': 'وقت‌گیر (بالای ۹۰ ثانیه)',
+};
 
 const ERROR_REASONS: { id: ErrorReasonTag; label: string; icon: string }[] = [
   { id: 'بی‌دقتی', label: 'بی‌دقتی', icon: '🎯' },
@@ -70,6 +86,10 @@ export const QuestionJournalView: React.FC = () => {
   const currentQ = questions[selectedQuestionIndex];
   const totalCount = questions.length;
 
+  const availableSubjects = useMemo(() => {
+    return ['all', ...Array.from(new Set(questions.map((q) => q.subject)))];
+  }, [questions]);
+
   if (!activeExam || !currentQ) {
     return (
       <div className="p-16 flex flex-col items-center justify-center gap-3">
@@ -100,7 +120,7 @@ export const QuestionJournalView: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-6 animate-fadeIn" dir="rtl">
+    <div className="w-full max-w-6xl mx-auto px-4 py-6 pb-32 animate-fadeIn" dir="rtl">
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/80 shadow-md mb-6">
         <div className="flex items-center gap-3">
@@ -116,7 +136,7 @@ export const QuestionJournalView: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-sm font-black text-slate-900">{activeExam.title}</span>
               <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-black">
-                ژورنال تفصیلی ۹۰ سوال
+                ژورنال تفصیلی {toPersianDigits(totalCount)} سوال
               </span>
             </div>
             <p className="text-[11px] text-slate-500 font-mono">
@@ -166,14 +186,14 @@ export const QuestionJournalView: React.FC = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4 mb-6">
               <div className="flex items-center gap-3">
                 <span className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-mono font-black text-lg shadow-md shadow-blue-500/25">
-                  {currentQ.q_num}
+                  {toPersianDigits(currentQ.q_num)}
                 </span>
                 <div className="flex flex-col">
                   <span className="text-xs font-mono font-bold text-slate-500">{currentQ.utid}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-base font-black text-slate-900">{currentQ.subject}</span>
-                    <span className="text-xs font-mono text-slate-500 font-bold">
-                      (کلید طراح: گزینه {currentQ.correct_opt})
+                    <span className="text-xs font-mono text-slate-500 font-bold whitespace-nowrap">
+                      (کلید طراح: گزینه {toPersianDigits(currentQ.correct_opt)})
                     </span>
                   </div>
                 </div>
@@ -209,10 +229,10 @@ export const QuestionJournalView: React.FC = () => {
                 {currentQ.topic_title || 'مبحث فصل ۱'}
               </span>
               <span className="px-2.5 py-1 rounded-xl bg-purple-50 text-purple-700 text-xs font-bold border border-purple-100">
-                تیپ: {currentQ.question_type_fa || currentQ.question_type}
+                تیپ: {QUESTION_TYPE_LOCALIZED[currentQ.question_type] || currentQ.question_type_fa || currentQ.question_type}
               </span>
               <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-700 text-xs font-bold border border-amber-100">
-                زمان: {currentQ.time_profile_fa || currentQ.time_taking_profile}
+                زمان: {TIME_PROFILE_LOCALIZED[currentQ.time_taking_profile] || currentQ.time_profile_fa || currentQ.time_taking_profile}
               </span>
               <span className="px-2.5 py-1 rounded-xl bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200">
                 سختی: {currentQ.difficulty}
@@ -402,7 +422,7 @@ export const QuestionJournalView: React.FC = () => {
               </button>
 
               <span className="text-xs font-mono font-bold text-slate-400">
-                {selectedQuestionIndex + 1} / {totalCount}
+                {toPersianDigits(selectedQuestionIndex + 1)} / {toPersianDigits(totalCount)}
               </span>
 
               <button
@@ -422,7 +442,7 @@ export const QuestionJournalView: React.FC = () => {
           </div>
         </div>
 
-        {/* Left Sidebar: 90 Questions List with Status & Filter (4 cols) */}
+        {/* Left Sidebar: Questions List with Status & Filter (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-3">
           {/* Filter Pills */}
           <div className="p-4 rounded-3xl bg-white/90 backdrop-blur-xl border border-slate-100 shadow-sm flex flex-col gap-3">
@@ -431,7 +451,7 @@ export const QuestionJournalView: React.FC = () => {
                 <Filter className="w-3.5 h-3.5 text-blue-600" />
                 <span>فیلتر سوالات</span>
               </span>
-              <span className="font-mono text-slate-500 font-bold">{filteredQuestions.length} سوال</span>
+              <span className="font-mono text-slate-500 font-bold">{toPersianDigits(filteredQuestions.length)} سوال</span>
             </div>
 
             {/* Status Filter */}
@@ -443,7 +463,7 @@ export const QuestionJournalView: React.FC = () => {
                   filterType === 'all' ? 'bg-white text-blue-900 shadow-xs' : 'text-slate-600'
                 }`}
               >
-                همه (۹۰)
+                همه ({toPersianDigits(totalCount)})
               </button>
               <button
                 type="button"
@@ -467,7 +487,7 @@ export const QuestionJournalView: React.FC = () => {
 
             {/* Subject Filter */}
             <div className="flex flex-wrap gap-1">
-              {['all', 'زیست‌شناسی', 'ریاضی', 'فیزیک', 'شیمی'].map((subj) => (
+              {availableSubjects.map((subj) => (
                 <button
                   key={subj}
                   type="button"
@@ -518,7 +538,7 @@ export const QuestionJournalView: React.FC = () => {
                           : 'bg-slate-100 text-slate-600'
                       }`}
                     >
-                      {qNum}
+                      {toPersianDigits(qNum)}
                     </span>
                     <div className="flex flex-col">
                       <span className="text-[11px] font-bold text-slate-900">{q.subject}</span>

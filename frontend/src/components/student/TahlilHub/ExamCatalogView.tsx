@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useTahlilStore } from '../../../store/useTahlilStore';
 import { Sparkles, Calendar, BookOpen, CheckCircle, ArrowLeft, BarChart3, Edit3 } from 'lucide-react';
+import { toPersianDigits } from '../../../utils/shamsiCalendar';
 
 export const ExamCatalogView: React.FC = () => {
   const { exams, loadExamsCatalog, selectExam, isLoading } = useTahlilStore();
@@ -41,7 +42,7 @@ export const ExamCatalogView: React.FC = () => {
             <span>آزمون‌های ثبت‌شده جهت تحلیل</span>
           </h2>
           <span className="text-xs text-slate-500 font-medium font-mono">
-            {exams.length} آزمون موجود
+            {toPersianDigits(exams.length)} آزمون موجود
           </span>
         </div>
 
@@ -70,12 +71,12 @@ export const ExamCatalogView: React.FC = () => {
                           {exam.provider}
                         </span>
                         <span className="px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">
-                          پایه {exam.grade} {exam.major}
+                          پایه {toPersianDigits(exam.grade)} {exam.major}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{exam.held_date}</span>
+                        <span>{toPersianDigits(exam.held_date)}</span>
                       </div>
                     </div>
 
@@ -84,9 +85,14 @@ export const ExamCatalogView: React.FC = () => {
                       <h3 className="text-base font-black text-slate-900 group-hover:text-blue-600 transition-colors">
                         {exam.title}
                       </h3>
-                      <p className="text-xs text-slate-500 mt-1 font-mono">
-                        کد آزمون: {exam.id} • {exam.total_questions} سوال در ۴ درس
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="px-2 py-0.5 rounded-md bg-blue-100/70 text-blue-900 text-[11px] font-black">
+                          {toPersianDigits(exam.sections.length)} درس اختصاصی • {toPersianDigits(exam.total_questions)} سوال
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-mono">
+                          {exam.id}
+                        </span>
+                      </div>
                     </div>
 
                     {/* Sections Badges */}
@@ -94,9 +100,9 @@ export const ExamCatalogView: React.FC = () => {
                       {exam.sections.map((sec, idx) => (
                         <span
                           key={idx}
-                          className="px-2 py-0.5 rounded-md bg-blue-50/80 text-blue-900 text-[11px] font-bold border border-blue-100"
+                          className="px-2 py-0.5 rounded-md bg-slate-50 text-slate-700 text-[11px] font-bold border border-slate-200"
                         >
-                          {sec.subject}: {sec.total_questions} سوال
+                          {sec.subject}: {toPersianDigits(sec.total_questions)} سوال
                         </span>
                       ))}
                     </div>
@@ -109,8 +115,8 @@ export const ExamCatalogView: React.FC = () => {
                           <span className="text-xs font-black">تحلیل و ژورنال تکمیل شده</span>
                         </div>
                         <div className="flex items-center gap-2 text-xs font-mono font-black">
-                          <span>آزمون: {statusObj.exam_score_pct}%</span>
-                          <span className="text-emerald-700 font-bold">◄ خارج از آزمون: {statusObj.potential_score_pct}%</span>
+                          <span>آزمون: {toPersianDigits(statusObj.exam_score_pct)}٪</span>
+                          <span className="text-emerald-700 font-bold">◄ خارج از آزمون: {toPersianDigits(statusObj.potential_score_pct)}٪</span>
                         </div>
                       </div>
                     )}
@@ -121,7 +127,7 @@ export const ExamCatalogView: React.FC = () => {
                           <Edit3 className="w-4 h-4 text-amber-600" />
                           <span>در حال تکمیل ژورنال و پاسخ‌برگ</span>
                         </div>
-                        <span className="font-mono">{statusObj.exam_score_pct}%</span>
+                        <span className="font-mono">{toPersianDigits(statusObj.exam_score_pct)}٪</span>
                       </div>
                     )}
                   </div>

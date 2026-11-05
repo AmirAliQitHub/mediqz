@@ -138,4 +138,26 @@
        «به‌روزرسانی حساب کاربری: لطفاً یک نام کاربری یکتا (آیدی مدیاز) و رمز عبور برای استفاده در لپ‌تاپ انتخاب فرمایید.»
      - Blocks course access until a valid unique username and password are saved, guaranteeing 100% database schema uniformity and eliminating legacy technical debt.
 
+---
+
+## 10. MODULE 10 SCOPE: DUEL MEDIQZ EXAM INGESTION & LIVE TAHLILHUB DEPLOYMENT
+- **Target Exam Spec:**
+  - ID: `MD12T-405Aba22`
+  - Title: `دوئل مدیاز - دوازدهم تجربی - ۲۲ آبان ۱۴۰۵`
+  - Provider: `مدیاز`, Grade: `12`, Major: `تجربی`, Date: `1405-08-22`, Questions: `140`
+  - 4 Subject Partitions:
+    * Biology (زیست‌شناسی): Q1 – Q45 (Prefix `B`, Total 45)
+    * Physics (فیزیک): Q46 – Q75 (Prefix `P`, Total 30)
+    * Chemistry (شیمی): Q76 – Q110 (Prefix `C`, Total 35)
+    * Mathematics (ریاضی): Q111 – Q140 (Prefix `M`, Total 30)
+- **Target Database Architecture:**
+  - Primary Exam Database: `backend/assets/exams.db` (tables `exams` and `exam_questions`)
+  - User Analysis Tracking: `backend/assets/userdata.db` (table `student_exam_analyses`)
+  - Taxonomy Tree: `backend/assets/topics.txt` (864 curriculum nodes, format `{B|P|C|M}{Grade}C{Chapter}S{Section}`)
+- **4-Step Execution Protocol:**
+  - **Step 1:** Schema Audit & Deterministic Metadata Rubric Formulation.
+  - **Step 2:** Modular Sub-Agent Batch Extraction & Key Solving into `.agents/data/new_exam_metadata.json`.
+  - **Step 3:** Non-Destructive Database Appending (`scripts/seed_duel_mediqz_exam.py`) & Browser Verification.
+  - **Step 4:** Git Commit & Live Server Push to `195.248.241.36` (`mediqz.service` restart).
+
 
