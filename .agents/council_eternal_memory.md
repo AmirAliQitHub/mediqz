@@ -155,9 +155,9 @@
   - User Analysis Tracking: `backend/assets/userdata.db` (table `student_exam_analyses`)
   - Taxonomy Tree: `backend/assets/topics.txt` (864 curriculum nodes, format `{B|P|C|M}{Grade}C{Chapter}S{Section}`)
 - **4-Step Execution Protocol:**
-  - **Step 1:** Schema Audit & Deterministic Metadata Rubric Formulation.
-  - **Step 2:** Modular Sub-Agent Batch Extraction & Key Solving into `.agents/data/new_exam_metadata.json`.
-  - **Step 3:** Non-Destructive Database Appending (`scripts/seed_duel_mediqz_exam.py`) & Browser Verification.
-  - **Step 4:** Git Commit & Live Server Push to `195.248.241.36` (`mediqz.service` restart).
+  - **Step 1:** Schema Audit & Deterministic Metadata Rubric Formulation (Completed & Certified: `CERT-STEP-1-EXTRACTION-DESIGN`).
+  - **Step 2:** Modular Sub-Agent Batch Extraction & Key Solving into `.agents/data/new_exam_metadata.json` (Completed & Certified: `CERT-STEP-2-METADATA-STAGING`).
+  - **Step 3:** Non-Destructive Database Appending (`scripts/seed_duel_mediqz_exam.py`) & Browser Verification (Completed & Certified: `CERT-STEP-3-DATABASE-AND-UI-VERIFIED`).
+  - **Step 4:** Git Commit (`f4ccb90`), GitHub Push, Live Server Deployment on `195.248.241.36` (Frontend rebuild, `mediqz.service` restarted, live smoke tests verified).
 
 

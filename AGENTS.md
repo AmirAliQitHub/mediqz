@@ -1,5 +1,5 @@
 # Alqualite CourseBox (Mediqz) - Architecture & Directory Map
-**Current Milestone:** `v3.5.0-identities` (Tri-Identity Separation, Dynamic Mediqz ID Management & Blocking Legacy Migration Operational on Cloud Production)
+**Current Milestone:** `v3.6.0-duel-exam` (Duel Mediqz Simulation Exam `MD12T-405Aba22` 140Q 4-Subject Ingestion, Carnet Teleportation & Visual Figure Assets Operational on Cloud Production)
 
 ## Tech Stack & Production Deployment
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Zustand, Lucide React
@@ -35,6 +35,6 @@
   - `frontend/src/utils/`: Native Iranian Shamsi calendar utility (`shamsiCalendar.ts`)
 - `userdata.db`: Unified SQLite database (`users`, `sessions`, `magic_login_requests`, Leitner cards, review logs, `eu_activity_logs`, `user_routines`)
 - `scripts/`: Production build, test runner, remote execution helper (`scripts/remote_exec.py`), process checking (`check_processes.sh`), and mobile TWA verification (`verify_mobile_twa.py`)
-- `tests/`: Comprehensive test suite (73 tests covering tri-identity separation, auth, WAL concurrency, webhook HMAC, and full master integration)
+- `tests/`: Comprehensive test suite (74 tests covering tri-identity separation, auth, WAL concurrency, webhook HMAC, exam database operations, and full master integration)
 - `.agents/rules/`: Supreme Council Governance (`supreme-council-governance.md`) and operational laws
 - `docs/`: Master verification artifacts and Supreme Council audit reports (`final_supreme_council_audit_report.md`, `docs/audit_artifacts/`)
