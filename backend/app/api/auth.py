@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from aiogram import Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from app.core.config import DB_USER_PATH, TELEGRAM_BOT_TOKEN
+from app.core.bot_session import create_bot
 from app.core.database import get_user_db, get_or_create_telegram_user
 from app.core.security import hash_password, verify_password, generate_salt, generate_session_token
 from app.models.schemas import UserRegisterReq, UserLoginReq, UserResponse, TelegramAuthReq, ChangeUsernameReq
@@ -586,7 +587,7 @@ async def request_magic_login(payload: dict, request: Request):
         bot: Optional[Bot] = getattr(request.app.state, "bot", None)
         if not bot and TELEGRAM_BOT_TOKEN:
             try:
-                bot = Bot(token=TELEGRAM_BOT_TOKEN)
+                bot = create_bot(token=TELEGRAM_BOT_TOKEN)
                 request.app.state.bot = bot
             except Exception:
                 bot = None

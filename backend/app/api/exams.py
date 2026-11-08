@@ -6,7 +6,7 @@ from app.api.deps import get_current_user, get_optional_user
 from app.core.config import ASSETS_DIR
 from app.core.database import get_user_db
 from app.core.exams_db import get_exams_db, init_exams_db
-from app.models.exam import KeypadSubmission, JournalSubmission, Phase1Submission, Phase2Submission
+from app.models.exam import KeypadSubmission, JournalSubmission, Phase1Submission, Phase2Submission, SwotSubmission, SwotData
 
 router = APIRouter(prefix="/exams", tags=["exams"])
 
@@ -23,6 +23,22 @@ TIME_PROFILE_FA = {
     "Fast": "سریع",
     "Standard": "استاندارد",
     "Long af": "وقت‌گیر",
+}
+
+STAGE_RANKS = {
+    "keypad": 0,
+    "swot": 1,
+    "journal": 2,
+    "dashboard": 3
+}
+
+STATUS_RANKS = {
+    "not_started": 0,
+    "phase1": 0,
+    "swot": 1,
+    "journaling": 2,
+    "phase2": 2,
+    "completed": 3
 }
 
 def load_topic_names() -> Dict[str, str]:
@@ -62,12 +78,13 @@ def get_exams_catalog(current_user: Optional[Dict] = Depends(get_optional_user))
             with get_user_db() as uconn:
                 uc = uconn.cursor()
                 u_rows = uc.execute(
-                    "SELECT exam_id, status, exam_score_pct, potential_score_pct, anxiety_tax_pct FROM student_exam_analyses WHERE user_id = ?",
+                    "SELECT exam_id, status, current_stage, exam_score_pct, potential_score_pct, anxiety_tax_pct FROM student_exam_analyses WHERE user_id = ?",
                     (current_user["id"],)
                 ).fetchall()
                 for ur in u_rows:
                     user_statuses[ur["exam_id"]] = {
                         "status": ur["status"],
+                        "current_stage": ur["current_stage"] if "current_stage" in ur.keys() else "keypad",
                         "exam_score_pct": ur["exam_score_pct"],
                         "potential_score_pct": ur["potential_score_pct"],
                         "anxiety_tax_pct": ur["anxiety_tax_pct"]
@@ -142,11 +159,13 @@ def get_user_exam_analysis(exam_id: str, current_user: Dict = Depends(get_curren
                 "user_id": current_user["id"],
                 "exam_id": exam_id,
                 "status": "not_started",
+                "current_stage": "keypad",
                 "exam_score_pct": 0.0,
                 "potential_score_pct": 0.0,
                 "anxiety_tax_pct": 0.0,
                 "phase1_answers": {},
                 "phase2_resolves": {},
+                "swot_analysis": {},
                 "metrics_summary": {}
             }
 
@@ -154,11 +173,13 @@ def get_user_exam_analysis(exam_id: str, current_user: Dict = Depends(get_curren
             "user_id": row["user_id"],
             "exam_id": row["exam_id"],
             "status": row["status"],
+            "current_stage": row["current_stage"] if "current_stage" in row.keys() and row["current_stage"] else "keypad",
             "exam_score_pct": row["exam_score_pct"],
             "potential_score_pct": row["potential_score_pct"],
             "anxiety_tax_pct": row["anxiety_tax_pct"],
             "phase1_answers": json.loads(row["phase1_answers_json"] or "{}"),
             "phase2_resolves": json.loads(row["phase2_resolves_json"] or "{}"),
+            "swot_analysis": json.loads(row["swot_analysis_json"] or "{}") if "swot_analysis_json" in row.keys() else {},
             "metrics_summary": json.loads(row["metrics_summary_json"] or "{}"),
             "created_at": row["created_at"],
             "updated_at": row["updated_at"]
@@ -242,31 +263,51 @@ def submit_keypad(exam_id: str, payload: KeypadSubmission, current_user: Dict = 
     with get_user_db() as uconn:
         uc = uconn.cursor()
         existing = uc.execute(
-            "SELECT id FROM student_exam_analyses WHERE user_id = ? AND exam_id = ?",
+            "SELECT id, status, current_stage, swot_analysis_json FROM student_exam_analyses WHERE user_id = ? AND exam_id = ?",
             (current_user["id"], exam_id)
         ).fetchone()
 
+        swot_data = json.loads(existing["swot_analysis_json"] or "{}") if existing and "swot_analysis_json" in existing.keys() and existing["swot_analysis_json"] else {}
+        is_swot_done = bool(swot_data.get("is_completed") or swot_data.get("is_skipped"))
+        target_stage = "journal" if is_swot_done else "swot"
+        target_status = "journaling" if is_swot_done else "swot"
+
         if existing:
+            existing_stage = existing["current_stage"] if "current_stage" in existing.keys() and existing["current_stage"] else "keypad"
+            existing_status = existing["status"] if "status" in existing.keys() and existing["status"] else "not_started"
+
+            current_stage_rank = STAGE_RANKS.get(existing_stage, 0)
+            target_stage_rank = STAGE_RANKS.get(target_stage, 1)
+            next_stage = existing_stage if current_stage_rank >= target_stage_rank else target_stage
+
+            current_status_rank = STATUS_RANKS.get(existing_status, 0)
+            target_status_rank = STATUS_RANKS.get(target_status, 1)
+            next_status = existing_status if current_status_rank >= target_status_rank else target_status
+
             uc.execute("""
                 UPDATE student_exam_analyses
-                SET status = 'journaling',
+                SET status = ?,
+                    current_stage = ?,
                     exam_score_pct = ?,
                     phase1_answers_json = ?,
                     updated_at = ?
                 WHERE user_id = ? AND exam_id = ?
-            """, (exam_score_pct, json.dumps(normalized_answers, ensure_ascii=False), now_iso, current_user["id"], exam_id))
+            """, (next_status, next_stage, exam_score_pct, json.dumps(normalized_answers, ensure_ascii=False), now_iso, current_user["id"], exam_id))
         else:
+            next_stage = target_stage
+            next_status = target_status
             uc.execute("""
                 INSERT INTO student_exam_analyses (
-                    user_id, exam_id, status, exam_score_pct, potential_score_pct, anxiety_tax_pct,
-                    phase1_answers_json, phase2_resolves_json, metrics_summary_json, created_at, updated_at
+                    user_id, exam_id, status, current_stage, exam_score_pct, potential_score_pct, anxiety_tax_pct,
+                    phase1_answers_json, phase2_resolves_json, swot_analysis_json, metrics_summary_json, created_at, updated_at
                 )
-                VALUES (?, ?, 'journaling', ?, 0.0, 0.0, ?, '{}', '{}', ?, ?)
+                VALUES (?, ?, 'swot', 'swot', ?, 0.0, 0.0, ?, '{}', '{}', '{}', ?, ?)
             """, (current_user["id"], exam_id, exam_score_pct, json.dumps(normalized_answers, ensure_ascii=False), now_iso, now_iso))
         uconn.commit()
 
     return {
-        "status": "journaling",
+        "status": next_status,
+        "current_stage": next_stage,
         "exam_score_pct": exam_score_pct,
         "correct_count": correct_count,
         "wrong_count": wrong_count,
@@ -274,6 +315,65 @@ def submit_keypad(exam_id: str, payload: KeypadSubmission, current_user: Dict = 
         "total_questions": total_q,
         "normalized_answers": normalized_answers
     }
+
+@router.post("/{exam_id}/analysis/swot")
+def submit_swot(exam_id: str, payload: SwotSubmission, current_user: Dict = Depends(get_current_user)):
+    """Saves biweekly SWOT reflections, cleans empty entries, and updates progression stage."""
+    with get_user_db() as uconn:
+        uc = uconn.cursor()
+        row = uc.execute(
+            "SELECT * FROM student_exam_analyses WHERE user_id = ? AND exam_id = ?",
+            (current_user["id"], exam_id)
+        ).fetchone()
+
+        if not row:
+            raise HTTPException(status_code=400, detail="ابتدا پاسخ‌برگ آزمون را ثبت کنید.")
+
+        # Clean lists: strip whitespace, remove empty items
+        def sanitize_list(items: List[str]) -> List[str]:
+            return [it.strip() for it in items if it and it.strip()]
+
+        cleaned_swot = {
+            "strengths": sanitize_list(payload.swot.strengths),
+            "weaknesses": sanitize_list(payload.swot.weaknesses),
+            "opportunities": sanitize_list(payload.swot.opportunities),
+            "threats": sanitize_list(payload.swot.threats),
+            "last_substep": max(1, min(4, payload.current_substep or payload.swot.last_substep)),
+            "is_completed": bool(payload.swot.is_completed or (payload.advance_stage and not payload.swot.is_skipped)),
+            "is_skipped": bool(payload.swot.is_skipped)
+        }
+
+        now_iso = datetime.now().isoformat()
+        current_stage = row["current_stage"] if "current_stage" in row.keys() and row["current_stage"] else "keypad"
+        current_status = row["status"] if "status" in row.keys() and row["status"] else "not_started"
+
+        target_stage = "journal" if (payload.advance_stage or cleaned_swot["is_skipped"] or cleaned_swot["is_completed"]) else "swot"
+        target_status = "journaling" if (payload.advance_stage or cleaned_swot["is_skipped"] or cleaned_swot["is_completed"]) else "swot"
+
+        # Monotonicity enforcement: never regress stage or status below current rank
+        current_stage_rank = STAGE_RANKS.get(current_stage, 0)
+        target_stage_rank = STAGE_RANKS.get(target_stage, 1)
+        new_stage = current_stage if current_stage_rank >= target_stage_rank else target_stage
+
+        current_status_rank = STATUS_RANKS.get(current_status, 0)
+        target_status_rank = STATUS_RANKS.get(target_status, 1)
+        new_status = current_status if current_status_rank >= target_status_rank else target_status
+
+        uc.execute("""
+            UPDATE student_exam_analyses
+            SET swot_analysis_json = ?,
+                current_stage = ?,
+                status = ?,
+                updated_at = ?
+            WHERE user_id = ? AND exam_id = ?
+        """, (json.dumps(cleaned_swot, ensure_ascii=False), new_stage, new_status, now_iso, current_user["id"], exam_id))
+        uconn.commit()
+
+        return {
+            "status": new_status,
+            "current_stage": new_stage,
+            "swot_analysis": cleaned_swot
+        }
 
 @router.post("/{exam_id}/analysis/journal")
 @router.post("/{exam_id}/analysis/phase2")
@@ -341,6 +441,7 @@ def submit_journal(exam_id: str, payload: JournalSubmission, current_user: Dict 
         uc.execute("""
             UPDATE student_exam_analyses
             SET status = 'completed',
+                current_stage = 'dashboard',
                 potential_score_pct = ?,
                 anxiety_tax_pct = ?,
                 phase2_resolves_json = ?,
@@ -360,6 +461,7 @@ def submit_journal(exam_id: str, payload: JournalSubmission, current_user: Dict 
 
     return {
         "status": "completed",
+        "current_stage": "dashboard",
         "exam_score_pct": exam_score_pct,
         "potential_score_pct": potential_score_pct,
         "anxiety_tax_pct": anxiety_tax_pct,

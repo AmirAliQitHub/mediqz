@@ -6,13 +6,27 @@ import {
   KeypadAnswerValue,
   QuestionJournalEntry,
   ExamMetricsResponse,
+  SwotData,
+  TahlilStage,
+  TahlilView,
 } from '../types/tahlil';
 import { tahlilService } from '../services/tahlilService';
 
-export type TahlilView = 'catalog' | 'dashboard' | 'keypad' | 'journal';
+export type { TahlilView };
 export type EvaluationMode = 'in_exam' | 'outside_exam';
 
 const getDraftStorageKey = (examId: string) => `mediqz_tahlil_draft_${examId}`;
+const getSwotDraftStorageKey = (examId: string) => `mediqz_tahlil_swot_draft_${examId}`;
+
+const initialSwotData: SwotData = {
+  strengths: [],
+  weaknesses: [],
+  opportunities: [],
+  threats: [],
+  last_substep: 1,
+  is_completed: false,
+  is_skipped: false,
+};
 
 interface TahlilState {
   exams: ExamSummary[];
@@ -24,6 +38,11 @@ interface TahlilState {
   // Data
   keypadAnswers: Record<string, KeypadAnswerValue>;
   journalEntries: Record<string, QuestionJournalEntry>;
+  swotData: SwotData;
+  swotSubstep: 1 | 2 | 3 | 4;
+  currentStage: TahlilStage;
+  maxUnlockedStage: TahlilStage;
+  maxUnlockedSwotSubstep: number;
   metrics: ExamMetricsResponse | null;
   activeMode: EvaluationMode;
   
@@ -37,6 +56,11 @@ interface TahlilState {
   setKeypadAnswer: (qNum: number, option: number) => void;
   markRemainingBlank: () => void;
   submitKeypad: () => Promise<void>;
+  setSwotList: (dimension: 'strengths' | 'weaknesses' | 'opportunities' | 'threats', list: string[]) => void;
+  setSwotSubstep: (step: 1 | 2 | 3 | 4) => void;
+  saveSwotDraft: () => Promise<void>;
+  submitSwot: (advanceToJournal?: boolean) => Promise<void>;
+  skipSwot: () => Promise<void>;
   setJournalEntry: (qNum: number, partial: Partial<QuestionJournalEntry>) => void;
   submitJournal: () => Promise<void>;
   loadMetrics: (examId: string) => Promise<void>;
@@ -68,6 +92,11 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
   selectedQuestionIndex: 0,
   keypadAnswers: {},
   journalEntries: {},
+  swotData: { ...initialSwotData },
+  swotSubstep: 1,
+  currentStage: 'keypad',
+  maxUnlockedStage: 'keypad',
+  maxUnlockedSwotSubstep: 1,
   metrics: null,
   activeMode: 'in_exam',
   isLoading: false,
@@ -77,6 +106,7 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
   get activePhase() {
     const v = get().activeView;
     if (v === 'keypad') return 'phase1';
+    if (v === 'swot') return 'phase1';
     if (v === 'journal') return 'phase2';
     if (v === 'dashboard') return 'report';
     return 'catalog';
@@ -115,7 +145,6 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
       const details = await tahlilService.getExamDetails(examId);
       const userAnalysis = await tahlilService.getUserAnalysis(examId).catch(() => null);
 
-      let targetView: TahlilView = 'dashboard';
       const existingKeypad: Record<string, KeypadAnswerValue> = {};
       const existingJournal: Record<string, QuestionJournalEntry> = {};
 
@@ -135,7 +164,7 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
         }
       }
 
-      // Restore local draft if exists and not already submitted
+      // Restore local keypad draft if exists and not already submitted
       try {
         const localDraft = localStorage.getItem(getDraftStorageKey(examId));
         if (localDraft) {
@@ -150,8 +179,46 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
         }
       } catch {}
 
-      // Check if analysis was actually submitted to backend
-      const isSubmittedToBackend = Boolean(
+      // Rehydrate SWOT analysis
+      let initialSwot: SwotData = { ...initialSwotData };
+      if (userAnalysis && userAnalysis.swot_analysis && typeof userAnalysis.swot_analysis === 'object') {
+        const sw = userAnalysis.swot_analysis;
+        initialSwot = {
+          strengths: Array.isArray(sw.strengths) ? sw.strengths : [],
+          weaknesses: Array.isArray(sw.weaknesses) ? sw.weaknesses : [],
+          opportunities: Array.isArray(sw.opportunities) ? sw.opportunities : [],
+          threats: Array.isArray(sw.threats) ? sw.threats : [],
+          last_substep: (sw.last_substep as 1 | 2 | 3 | 4) || 1,
+          is_completed: Boolean(sw.is_completed),
+          is_skipped: Boolean(sw.is_skipped),
+        };
+      }
+
+      // Restore local SWOT draft if exists and not completed/skipped
+      try {
+        const localSwotDraft = localStorage.getItem(getSwotDraftStorageKey(examId));
+        if (localSwotDraft) {
+          const parsed = JSON.parse(localSwotDraft);
+          if (parsed && typeof parsed === 'object') {
+            if (Array.isArray(parsed.strengths) && initialSwot.strengths.length === 0) initialSwot.strengths = parsed.strengths;
+            if (Array.isArray(parsed.weaknesses) && initialSwot.weaknesses.length === 0) initialSwot.weaknesses = parsed.weaknesses;
+            if (Array.isArray(parsed.opportunities) && initialSwot.opportunities.length === 0) initialSwot.opportunities = parsed.opportunities;
+            if (Array.isArray(parsed.threats) && initialSwot.threats.length === 0) initialSwot.threats = parsed.threats;
+            if (parsed.last_substep && !initialSwot.is_completed && !initialSwot.is_skipped) {
+              initialSwot.last_substep = parsed.last_substep;
+            }
+          }
+        }
+      } catch {}
+
+      // Calculate max unlocked substep in SWOT
+      let unlockedSubstep = Math.max(1, initialSwot.last_substep || 1);
+      if (initialSwot.is_completed || initialSwot.is_skipped) {
+        unlockedSubstep = 4;
+      }
+
+      // Check if keypad was actually submitted to backend
+      const isKeypadSubmitted = Boolean(
         userAnalysis &&
         userAnalysis.status &&
         userAnalysis.status !== 'not_started' &&
@@ -159,24 +226,48 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
         Object.keys(userAnalysis.phase1_answers).length > 0
       );
 
-      if (!isSubmittedToBackend) {
-        // Active draft or new attempt stays on keypad
+      let targetView: TahlilView = 'keypad';
+      let stage: TahlilStage = 'keypad';
+      let maxStage: TahlilStage = 'keypad';
+
+      if (!isKeypadSubmitted) {
         targetView = 'keypad';
-      } else if (userAnalysis.status === 'phase1') {
+        stage = 'keypad';
+        maxStage = 'keypad';
+      } else if (userAnalysis.status === 'completed' || userAnalysis.current_stage === 'dashboard') {
+        targetView = 'dashboard';
+        stage = 'dashboard';
+        maxStage = 'dashboard';
+        get().loadMetrics(examId).catch(() => {});
+      } else if (
+        userAnalysis.current_stage === 'journal' ||
+        userAnalysis.status === 'journaling' ||
+        initialSwot.is_completed ||
+        initialSwot.is_skipped
+      ) {
         targetView = 'journal';
+        stage = 'journal';
+        maxStage = 'journal';
         get().loadMetrics(examId).catch(() => {});
       } else {
-        targetView = 'dashboard';
-        get().loadMetrics(examId).catch(() => {});
+        // Keypad submitted, SWOT in progress
+        targetView = 'swot';
+        stage = 'swot';
+        maxStage = 'swot';
       }
 
       set({
         activeExam: details,
         questions: details.questions || [],
         activeView: targetView,
+        currentStage: stage,
+        maxUnlockedStage: maxStage,
         selectedQuestionIndex: 0,
         keypadAnswers: existingKeypad,
         journalEntries: existingJournal,
+        swotData: initialSwot,
+        swotSubstep: initialSwot.last_substep || 1,
+        maxUnlockedSwotSubstep: unlockedSubstep,
         isLoading: false,
       });
     } catch (err: any) {
@@ -238,7 +329,7 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
   },
 
   submitKeypad: async () => {
-    const { activeExam, keypadAnswers } = get();
+    const { activeExam, keypadAnswers, swotData } = get();
     if (!activeExam) return;
 
     set({ isLoading: true, error: null });
@@ -248,9 +339,145 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
         localStorage.removeItem(getDraftStorageKey(activeExam.id));
       } catch {}
       await get().loadMetrics(activeExam.id);
-      set({ activeView: 'journal', isLoading: false });
+
+      const isSwotDone = Boolean(swotData.is_completed || swotData.is_skipped);
+      const nextView: TahlilView = isSwotDone ? 'journal' : 'swot';
+      const nextStage: TahlilStage = isSwotDone ? 'journal' : 'swot';
+
+      set({
+        activeView: nextView,
+        currentStage: nextStage,
+        maxUnlockedStage: nextStage,
+        isLoading: false,
+      });
     } catch (err: any) {
       set({ error: err.message || 'خطا در ثبت پاسخ‌برگ', isLoading: false });
+    }
+  },
+
+  setSwotList: (dimension, list) => {
+    const { swotData, activeExam } = get();
+    const updated: SwotData = {
+      ...swotData,
+      [dimension]: list,
+    };
+    if (activeExam) {
+      try {
+        localStorage.setItem(getSwotDraftStorageKey(activeExam.id), JSON.stringify(updated));
+      } catch {}
+    }
+    set({ swotData: updated });
+  },
+
+  setSwotSubstep: (step) => {
+    const { maxUnlockedSwotSubstep, swotData, activeExam } = get();
+    // Guard: student cannot jump forward past unlocked substeps
+    if (step > maxUnlockedSwotSubstep) return;
+
+    const updated = { ...swotData, last_substep: step };
+    if (activeExam) {
+      try {
+        localStorage.setItem(getSwotDraftStorageKey(activeExam.id), JSON.stringify(updated));
+      } catch {}
+    }
+    set({ swotSubstep: step, swotData: updated });
+  },
+
+  saveSwotDraft: async () => {
+    const { activeExam, swotData, swotSubstep } = get();
+    if (!activeExam) return;
+    try {
+      await tahlilService.submitSwot(activeExam.id, {
+        swot: swotData,
+        current_substep: swotSubstep,
+        advance_stage: false,
+      });
+    } catch (err) {
+      console.warn('Background SWOT save failed:', err);
+    }
+  },
+
+  submitSwot: async (advanceToJournal = false) => {
+    const { activeExam, swotData, swotSubstep, maxUnlockedSwotSubstep } = get();
+    if (!activeExam) return;
+
+    set({ isLoading: true, error: null });
+    try {
+      const nextSubstep = Math.min(4, swotSubstep + 1) as 1 | 2 | 3 | 4;
+      const willComplete = advanceToJournal || swotSubstep === 4;
+
+      const payloadSwot: SwotData = {
+        ...swotData,
+        last_substep: willComplete ? 4 : nextSubstep,
+        is_completed: willComplete ? true : swotData.is_completed,
+      };
+
+      const res = await tahlilService.submitSwot(activeExam.id, {
+        swot: payloadSwot,
+        current_substep: willComplete ? 4 : nextSubstep,
+        advance_stage: willComplete,
+      });
+
+      const updatedSwot: SwotData = {
+        ...payloadSwot,
+        ...(res && res.swot_analysis ? res.swot_analysis : {}),
+      };
+
+      if (willComplete) {
+        try {
+          localStorage.removeItem(getSwotDraftStorageKey(activeExam.id));
+        } catch {}
+        set({
+          swotData: updatedSwot,
+          activeView: 'journal',
+          currentStage: 'journal',
+          maxUnlockedStage: 'journal',
+          isLoading: false,
+        });
+      } else {
+        const newMax = Math.max(maxUnlockedSwotSubstep, nextSubstep);
+        set({
+          swotData: updatedSwot,
+          swotSubstep: nextSubstep,
+          maxUnlockedSwotSubstep: newMax,
+          isLoading: false,
+        });
+      }
+    } catch (err: any) {
+      set({ error: err.message || 'خطا در ثبت اطلاعات سوات', isLoading: false });
+    }
+  },
+
+  skipSwot: async () => {
+    const { activeExam, swotData, swotSubstep } = get();
+    if (!activeExam) return;
+
+    set({ isLoading: true, error: null });
+    try {
+      const skippedSwot: SwotData = {
+        ...swotData,
+        is_skipped: true,
+      };
+      const res = await tahlilService.submitSwot(activeExam.id, {
+        swot: skippedSwot,
+        current_substep: swotSubstep,
+        advance_stage: true,
+      });
+      try {
+        localStorage.removeItem(getSwotDraftStorageKey(activeExam.id));
+      } catch {}
+      set({
+        swotData: {
+          ...skippedSwot,
+          ...(res && res.swot_analysis ? res.swot_analysis : {}),
+        },
+        activeView: 'journal',
+        currentStage: 'journal',
+        maxUnlockedStage: 'journal',
+        isLoading: false,
+      });
+    } catch (err: any) {
+      set({ error: err.message || 'خطا در رد شدن از مرحله سوات', isLoading: false });
     }
   },
 
@@ -273,7 +500,7 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
     try {
       await tahlilService.submitJournal(activeExam.id, journalEntries);
       await get().loadMetrics(activeExam.id);
-      set({ activeView: 'dashboard', isLoading: false });
+      set({ activeView: 'dashboard', currentStage: 'dashboard', maxUnlockedStage: 'dashboard', isLoading: false });
     } catch (err: any) {
       set({ error: err.message || 'خطا در ثبت ژورنال', isLoading: false });
     }
@@ -299,10 +526,16 @@ export const useTahlilStore = create<TahlilState>((set, get) => ({
       await tahlilService.resetAnalysis(activeExam.id);
       try {
         localStorage.removeItem(getDraftStorageKey(activeExam.id));
+        localStorage.removeItem(getSwotDraftStorageKey(activeExam.id));
       } catch {}
       set({
         keypadAnswers: {},
         journalEntries: {},
+        swotData: { ...initialSwotData },
+        swotSubstep: 1,
+        currentStage: 'keypad',
+        maxUnlockedStage: 'keypad',
+        maxUnlockedSwotSubstep: 1,
         metrics: null,
         activeView: 'keypad',
         selectedQuestionIndex: 0,

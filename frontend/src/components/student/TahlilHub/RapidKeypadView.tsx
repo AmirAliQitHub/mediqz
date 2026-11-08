@@ -193,7 +193,7 @@ export const RapidKeypadView: React.FC = () => {
             ) : (
               <>
                 <CheckCircle2 className="w-4 h-4" />
-                <span>ثبت و ورود به ژورنال تفصیلی</span>
+                <span>ثبت پاسخ‌برگ و ادامه ←</span>
               </>
             )}
           </button>
@@ -420,7 +420,7 @@ export const RapidKeypadView: React.FC = () => {
               <p className="text-xs text-slate-600 leading-relaxed font-medium">
                 شما به <strong className="text-blue-700 font-bold">{toPersianDigits(answeredCount)}</strong> سوال از{' '}
                 <strong className="text-slate-900 font-bold">{toPersianDigits(totalCount)}</strong> سوال پاسخ داده‌اید (
-                <strong className="text-amber-700 font-bold">{toPersianDigits(totalCount - answeredCount)}</strong> سوال بی‌پاسخ مانده است). با تایید ثبت، سوالات باقی‌مانده سفید تلقی شده و وارد ژورنال تفصیلی خواهید شد.
+                <strong className="text-amber-700 font-bold">{toPersianDigits(totalCount - answeredCount)}</strong> سوال بی‌پاسخ مانده است). با تایید ثبت، سوالات باقی‌مانده سفید تلقی شده و وارد مرحله تحلیل SWOT دوهفته خواهید شد.
               </p>
 
               <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">

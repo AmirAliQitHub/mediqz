@@ -2,6 +2,7 @@ import React from 'react';
 import { useTahlilStore } from '../../../store/useTahlilStore';
 import { ExamCatalogView } from './ExamCatalogView';
 import { RapidKeypadView } from './RapidKeypadView';
+import { SwotReflectionView } from './SwotReflectionView';
 import { QuestionJournalView } from './QuestionJournalView';
 import { AnalyticsDashboardView } from './AnalyticsDashboardView';
 
@@ -20,6 +21,8 @@ export const TahlilHub: React.FC = () => {
         return <ExamCatalogView />;
       case 'keypad':
         return <RapidKeypadView />;
+      case 'swot':
+        return <SwotReflectionView />;
       case 'journal':
         return <QuestionJournalView />;
       case 'dashboard':

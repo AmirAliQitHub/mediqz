@@ -1,3 +1,22 @@
+export type TahlilStage = 'keypad' | 'swot' | 'journal' | 'dashboard';
+export type TahlilView = 'catalog' | 'keypad' | 'swot' | 'journal' | 'dashboard';
+
+export interface SwotData {
+  strengths: string[];
+  weaknesses: string[];
+  opportunities: string[];
+  threats: string[];
+  last_substep: 1 | 2 | 3 | 4;
+  is_completed: boolean;
+  is_skipped: boolean;
+}
+
+export interface SwotSubmission {
+  swot: SwotData;
+  current_substep: number;
+  advance_stage: boolean;
+}
+
 export interface ExamSection {
   subject: string;
   start_q: number;
@@ -16,7 +35,8 @@ export interface ExamSummary {
   total_questions: number;
   sections: ExamSection[];
   analysis_status?: {
-    status: 'not_started' | 'journaling' | 'completed' | 'phase1' | 'phase2';
+    status: 'not_started' | 'swot' | 'journaling' | 'completed' | 'phase1' | 'phase2';
+    current_stage?: TahlilStage;
     exam_score_pct?: number;
     potential_score_pct?: number;
     anxiety_tax_pct?: number;

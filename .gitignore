@@ -36,6 +36,9 @@ ENV/
 backend/assets/userdata.db*
 userdata.db
 backend/userdata.db
+exams.db
+backend/exams.db
+*.db
 *.sqlite3
 *.db-wal
 *.db-shm

@@ -6,6 +6,7 @@ import {
   ExamMetricsResponse,
   InExamAnswerStatus,
   KeypadAnswerValue,
+  SwotSubmission,
 } from '../types/tahlil';
 
 export const tahlilService = {
@@ -26,6 +27,13 @@ export const tahlilService = {
     answers: Record<string, KeypadAnswerValue | number | InExamAnswerStatus>
   ): Promise<any> {
     return api.post<any>(`/exams/${examId}/analysis/keypad`, { answers });
+  },
+
+  async submitSwot(
+    examId: string,
+    payload: SwotSubmission
+  ): Promise<any> {
+    return api.post<any>(`/exams/${examId}/analysis/swot`, payload);
   },
 
   // Compatibility alias

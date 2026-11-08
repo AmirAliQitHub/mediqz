@@ -17,6 +17,7 @@ from app.api.courses import router as courses_router
 from app.api.reviews import router as reviews_router
 from app.api.admin import router as admin_router
 from app.api.exams import router as exams_router
+from app.core.bot_session import create_bot
 from app.api.telegram_webhook import router as telegram_router
 
 logger = logging.getLogger("MediazApp")
@@ -30,7 +31,7 @@ async def lifespan(app: FastAPI):
     bot = None
     if TELEGRAM_BOT_TOKEN:
         try:
-            bot = Bot(token=TELEGRAM_BOT_TOKEN)
+            bot = create_bot(token=TELEGRAM_BOT_TOKEN)
             app.state.bot = bot
             logger.info("Telegram Bot client initialized.")
 

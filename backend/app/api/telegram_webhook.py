@@ -6,6 +6,7 @@ from aiogram import Bot
 from aiogram.types import Update
 
 from app.core.config import TELEGRAM_SECRET_TOKEN, WEB_APP_URL, TELEGRAM_BOT_TOKEN
+from app.core.bot_session import create_bot
 from app.bot.dispatcher import dp
 
 logger = logging.getLogger("TelegramWebhookAPI")
@@ -20,7 +21,7 @@ def get_or_create_bot(request: Request) -> Optional[Bot]:
     bot: Optional[Bot] = getattr(request.app.state, "bot", None)
     if not bot and TELEGRAM_BOT_TOKEN:
         try:
-            bot = Bot(token=TELEGRAM_BOT_TOKEN)
+            bot = create_bot(token=TELEGRAM_BOT_TOKEN)
             request.app.state.bot = bot
             logger.info("Lazy-initialized Telegram Bot instance on serverless request.")
         except Exception as e:

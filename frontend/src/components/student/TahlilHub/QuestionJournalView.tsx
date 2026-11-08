@@ -15,6 +15,7 @@ import {
   Filter,
   BarChart3,
   Edit,
+  Sparkles,
 } from 'lucide-react';
 import {
   ErrorReasonTag,
@@ -154,6 +155,16 @@ export const QuestionJournalView: React.FC = () => {
           >
             <Edit className="w-3.5 h-3.5" />
             <span>ویرایش کلید سریع</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('swot')}
+            className="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            title="ویرایش تحلیل SWOT عملکرد دوهفته"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            <span>ویرایش SWOT دوهفته</span>
           </button>
 
           <button

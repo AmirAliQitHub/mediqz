@@ -66,3 +66,18 @@ class JournalSubmission(BaseModel):
     resolves: Optional[Dict[str, Any]] = None
 
 Phase2Submission = JournalSubmission
+
+# Biweekly SWOT Reflection Models
+class SwotData(BaseModel):
+    strengths: List[str] = Field(default_factory=list)
+    weaknesses: List[str] = Field(default_factory=list)
+    opportunities: List[str] = Field(default_factory=list)
+    threats: List[str] = Field(default_factory=list)
+    last_substep: int = 1
+    is_completed: bool = False
+    is_skipped: bool = False
+
+class SwotSubmission(BaseModel):
+    swot: SwotData
+    current_substep: int = 1
+    advance_stage: bool = False

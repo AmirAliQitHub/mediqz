@@ -92,11 +92,13 @@ def init_databases() -> None:
                 user_id INTEGER NOT NULL,
                 exam_id TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'phase1',
+                current_stage TEXT NOT NULL DEFAULT 'keypad',
                 exam_score_pct REAL DEFAULT 0.0,
                 potential_score_pct REAL DEFAULT 0.0,
                 anxiety_tax_pct REAL DEFAULT 0.0,
                 phase1_answers_json TEXT NOT NULL DEFAULT '{}',
                 phase2_resolves_json TEXT NOT NULL DEFAULT '{}',
+                swot_analysis_json TEXT NOT NULL DEFAULT '{}',
                 metrics_summary_json TEXT DEFAULT '{}',
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
@@ -223,6 +225,17 @@ def init_databases() -> None:
         if "has_password" not in existing_cols:
             c.execute("ALTER TABLE users ADD COLUMN has_password INTEGER DEFAULT 0")
             c.execute("UPDATE users SET has_password = 1 WHERE password_hash != ''")
+
+        # Ensure migration columns for student_exam_analyses table
+        exam_cols = [r[1] for r in c.execute("PRAGMA table_info(student_exam_analyses)").fetchall()]
+        if "swot_analysis_json" not in exam_cols:
+            c.execute("ALTER TABLE student_exam_analyses ADD COLUMN swot_analysis_json TEXT NOT NULL DEFAULT '{}'")
+        if "current_stage" not in exam_cols:
+            c.execute("ALTER TABLE student_exam_analyses ADD COLUMN current_stage TEXT NOT NULL DEFAULT 'keypad'")
+
+        # Idempotent backfill: Align current_stage with legacy status for existing records
+        c.execute("UPDATE student_exam_analyses SET current_stage = 'dashboard' WHERE status = 'completed' AND current_stage = 'keypad'")
+        c.execute("UPDATE student_exam_analyses SET current_stage = 'journal' WHERE status IN ('journaling', 'phase2') AND current_stage = 'keypad'")
 
         # Council Mandate #1: Sanitize duplicate telegram_user_ids before creating unique index
         # Keep the earliest registered user id, set subsequent duplicates to NULL

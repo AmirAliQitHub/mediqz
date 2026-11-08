@@ -160,4 +160,33 @@
   - **Step 3:** Non-Destructive Database Appending (`scripts/seed_duel_mediqz_exam.py`) & Browser Verification (Completed & Certified: `CERT-STEP-3-DATABASE-AND-UI-VERIFIED`).
   - **Step 4:** Git Commit (`f4ccb90`), GitHub Push, Live Server Deployment on `195.248.241.36` (Frontend rebuild, `mediqz.service` restarted, live smoke tests verified).
 
+---
+
+## 11. MODULE 11 SCOPE: BIWEEKLY SWOT REFLECTION & LINEAR PROGRESSION STEPPER IN TAHLILHUB
+- **Architectural Scope & Placement:**
+  - Placed directly between Phase 1 (Keypad Answer Entry) and Phase 2 (Question-by-Question Journaling).
+  - Enforces a linear 3-stage progression in `TahlilHub.tsx`:
+    1. Stage 1: Keypad Answer Entry (`keypad` / ورود پاسخ‌برگ) - modularly decoupled, ready for automated institution keys.
+    2. Stage 2: Biweekly SWOT Study Reflection (`swot` / ارزیابی سوات دوهفته‌ای):
+       - Sub-step 1: Strengths (`نقاط قوت مطالعاتی`) - «نقاط قوت عملکرد مطالعاتیت برای آزمون چیا بودن؟»
+       - Sub-step 2: Weaknesses (`نقاط ضعف مطالعاتی`) - «نقاط ضعف عملکرد مطالعاتیت برای آزمون چیا بودن؟»
+       - Sub-step 3: Ideas for progress (`ایده‌ها و فرصت‌ها`) - «ایده‌هایی برای بهتر شدن عملکرد مطالعت»
+       - Sub-step 4: Threats / Future hurdles (`تهدیدات و پیش‌بینی مشکلات`) - «تهدیداتی که توی بازه مطالعه این آزمون حس کردی (پیش‌بینی مشکلات آینده) چیا بودن؟»
+    3. Stage 3: Question Journal (`journal` / ژورنال سوال به سوال).
+    4. Stage 4: Clinical Analytics & Report (`dashboard` / کارنامه تحلیلی).
+- **Core Interactive Mechanics:**
+  - **Dynamic Auto-Expanding Textbox & Grayed-Out Row:**
+    * Row 1: Active auto-expanding textarea with Persian number badge on the right (`۱`). Starts single-line, expands vertically with input length.
+    * Row 2: Grayed-out placeholder card (`opacity-40 hover:opacity-70 cursor-pointer`).
+    * On click: Row 2 activates, receives next number badge (`۲`), focuses, and automatically spawns a new Grayed-Out Row 3 below it.
+  - **Linear Stepper & Navigation Rules:**
+    * Student can navigate BACK to any previously completed step/substep and edit values.
+    * Jumping FORWARD past current progress is strictly disabled.
+    * Sub-step 1, 2, 3 show standard "بعدی" (Next) button at bottom.
+    * Sub-step 4 does NOT show "بعدی"; shows «ثبت SWOT و ورود به ژورنال سوالات».
+    * "ثبت و ورود به ژورنال سوالات (رد شدن از SWOT)" is available across all SWOT sub-steps to allow immediate skip.
+  - **Data Persistence:**
+    * After each step and sub-step, answers are saved to both `localStorage` and backend `userdata.db` (`student_exam_analyses.swot_analysis_json`).
+
+
 

@@ -200,5 +200,186 @@ class TestExamsAPI(unittest.TestCase):
         self.assertNotIn("quick_wins", metrics)
         self.assertNotIn("total_study_hours", metrics)
 
+    def test_swot_submission_and_stage_progression(self):
+        exam_id = "M10T-405Mehr17"
+        # Reset analysis
+        self.client.post(f"/api/exams/{exam_id}/analysis/reset", headers=self.headers)
+
+        # 1. Check initial state
+        init_resp = self.client.get(f"/api/exams/{exam_id}/analysis", headers=self.headers)
+        self.assertEqual(init_resp.status_code, 200)
+        self.assertEqual(init_resp.json()["current_stage"], "keypad")
+
+        # 2. Submit Keypad
+        k_resp = self.client.post(
+            f"/api/exams/{exam_id}/analysis/keypad",
+            json={"answers": {"1": 3, "2": 0}},
+            headers=self.headers
+        )
+        self.assertEqual(k_resp.status_code, 200)
+        self.assertEqual(k_resp.json()["current_stage"], "swot")
+        self.assertEqual(k_resp.json()["status"], "swot")
+
+        # 3. Submit SWOT Sub-step 1 Draft (strengths)
+        swot_payload_step1 = {
+            "swot": {
+                "strengths": ["حل تست‌های زیست فصل اول", "  ", "تمرکز بالا در مدیریت زمان"],
+                "weaknesses": [],
+                "opportunities": [],
+                "threats": [],
+                "last_substep": 1,
+                "is_completed": False,
+                "is_skipped": False
+            },
+            "current_substep": 1,
+            "advance_stage": False
+        }
+        s1_resp = self.client.post(
+            f"/api/exams/{exam_id}/analysis/swot",
+            json=swot_payload_step1,
+            headers=self.headers
+        )
+        self.assertEqual(s1_resp.status_code, 200)
+        s1_data = s1_resp.json()
+        self.assertEqual(s1_data["current_stage"], "swot")
+        self.assertEqual(s1_data["swot_analysis"]["last_substep"], 1)
+        # Verify empty string was sanitized out
+        self.assertEqual(len(s1_data["swot_analysis"]["strengths"]), 2)
+        self.assertIn("حل تست‌های زیست فصل اول", s1_data["swot_analysis"]["strengths"])
+
+        # 4. Advance SWOT through completion
+        swot_payload_complete = {
+            "swot": {
+                "strengths": ["حل تست‌های زیست فصل اول", "تمرکز بالا"],
+                "weaknesses": ["کند بودن در مسائل محاسباتی شیمی"],
+                "opportunities": ["استفاده از آزمون‌های دوره‌ای آخر هفته"],
+                "threats": ["فشردگی برنامه امتحانات مدرسه"],
+                "last_substep": 4,
+                "is_completed": True,
+                "is_skipped": False
+            },
+            "current_substep": 4,
+            "advance_stage": True
+        }
+        complete_resp = self.client.post(
+            f"/api/exams/{exam_id}/analysis/swot",
+            json=swot_payload_complete,
+            headers=self.headers
+        )
+        self.assertEqual(complete_resp.status_code, 200)
+        c_data = complete_resp.json()
+        self.assertEqual(c_data["current_stage"], "journal")
+        self.assertEqual(c_data["status"], "journaling")
+        self.assertTrue(c_data["swot_analysis"]["is_completed"])
+
+        # 5. Verify analysis GET returns full SWOT and current_stage
+        get_resp = self.client.get(f"/api/exams/{exam_id}/analysis", headers=self.headers)
+        self.assertEqual(get_resp.status_code, 200)
+        g_data = get_resp.json()
+        self.assertEqual(g_data["current_stage"], "journal")
+        self.assertEqual(len(g_data["swot_analysis"]["weaknesses"]), 1)
+        self.assertEqual(g_data["swot_analysis"]["weaknesses"][0], "کند بودن در مسائل محاسباتی شیمی")
+
+        # 6. Test skip flow for another exam
+        exam2_id = "MD12T-405Aba22"
+        self.client.post(f"/api/exams/{exam2_id}/analysis/reset", headers=self.headers)
+        self.client.post(
+            f"/api/exams/{exam2_id}/analysis/keypad",
+            json={"answers": {"1": 2}},
+            headers=self.headers
+        )
+        skip_payload = {
+            "swot": {
+                "strengths": ["نقطه قوت نیمه‌کاره"],
+                "weaknesses": [],
+                "opportunities": [],
+                "threats": [],
+                "last_substep": 1,
+                "is_completed": False,
+                "is_skipped": True
+            },
+            "current_substep": 1,
+            "advance_stage": False
+        }
+        skip_resp = self.client.post(
+            f"/api/exams/{exam2_id}/analysis/swot",
+            json=skip_payload,
+            headers=self.headers
+        )
+        self.assertEqual(skip_resp.status_code, 200)
+        skip_data = skip_resp.json()
+        self.assertEqual(skip_data["current_stage"], "journal")
+        self.assertTrue(skip_data["swot_analysis"]["is_skipped"])
+        # Preserved existing entered strength despite skipping
+        self.assertEqual(skip_data["swot_analysis"]["strengths"], ["نقطه قوت نیمه‌کاره"])
+
+        # 7. Monotonicity regression test:
+        # Student is currently at 'journal' stage for exam2_id.
+        # Student goes back to SWOT to edit their strengths with advance_stage = False.
+        # Assert stage remains 'journal' and status remains 'journaling' (NEVER demoted to 'swot').
+        edit_swot_resp = self.client.post(
+            f"/api/exams/{exam2_id}/analysis/swot",
+            json={
+                "swot": {
+                    "strengths": ["نقطه قوت ویرایش شده در ژورنال"],
+                    "weaknesses": ["ضعف ویرایش شده"],
+                    "opportunities": [],
+                    "threats": [],
+                    "last_substep": 1,
+                    "is_completed": False,
+                    "is_skipped": True
+                },
+                "current_substep": 1,
+                "advance_stage": False
+            },
+            headers=self.headers
+        )
+        self.assertEqual(edit_swot_resp.status_code, 200)
+        self.assertEqual(edit_swot_resp.json()["current_stage"], "journal")
+        self.assertEqual(edit_swot_resp.json()["status"], "journaling")
+
+        # Complete exam2_id through journal:
+        self.client.post(
+            f"/api/exams/{exam2_id}/analysis/journal",
+            json={"entries": {}},
+            headers=self.headers
+        )
+        post_complete_get = self.client.get(f"/api/exams/{exam2_id}/analysis", headers=self.headers)
+        self.assertEqual(post_complete_get.json()["current_stage"], "dashboard")
+        self.assertEqual(post_complete_get.json()["status"], "completed")
+
+        # Now student revisits SWOT from completed carnet and edits reflections:
+        re_edit_swot = self.client.post(
+            f"/api/exams/{exam2_id}/analysis/swot",
+            json={
+                "swot": {
+                    "strengths": ["نقطه قوت بعد از تکمیل کل آزمون"],
+                    "weaknesses": [],
+                    "opportunities": [],
+                    "threats": [],
+                    "last_substep": 1,
+                    "is_completed": True,
+                    "is_skipped": False
+                },
+                "current_substep": 1,
+                "advance_stage": False
+            },
+            headers=self.headers
+        )
+        self.assertEqual(re_edit_swot.status_code, 200)
+        # MUST remain 'dashboard' and 'completed'
+        self.assertEqual(re_edit_swot.json()["current_stage"], "dashboard")
+        self.assertEqual(re_edit_swot.json()["status"], "completed")
+
+        # Same for keypad re-submission from completed carnet:
+        re_keypad = self.client.post(
+            f"/api/exams/{exam2_id}/analysis/keypad",
+            json={"answers": {"1": 2}},
+            headers=self.headers
+        )
+        self.assertEqual(re_keypad.status_code, 200)
+        self.assertEqual(re_keypad.json()["current_stage"], "dashboard")
+        self.assertEqual(re_keypad.json()["status"], "completed")
+
 if __name__ == "__main__":
     unittest.main()
