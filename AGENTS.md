@@ -14,10 +14,10 @@
   - 2. `username`: English Mediqz ID (`^(?=.*[a-z0-9])[a-z0-9_]{3,30}$`). Sole credential for laptop/desktop login and push verification. Editable in profile with live self-collision exemption.
   - 3. `telegram_user_id` / `telegram_username`: Cryptographic bot attachment (HMAC initData / Magic Login). Pure numeric manual inputs completely banned.
   - 4. `LegacyMigrationModal`: Deep translucent purple liquid glass modal with mobile bottom-sheet ergonomics (`375x812`), DOM root-level anti-bypass guard in `App.tsx` preventing course exposure to legacy users.
-- **Live Production URL**: `https://195-248-241-36.sslip.io` (Automated Let's Encrypt SSL)
+- **Live Production URL**: `https://mediaz.abrdns.com` (Backup: `https://195-248-241-36.sslip.io`, Automated Let's Encrypt SSL)
 - **Server Infrastructure**:
   - Provider: ParsPack Cloud Server Germany (`deCloud2` - 1 vCore, 2 GB RAM + 2 GB Swap)
-  - IPv4: `195.248.241.36` (resolves to `195-248-241-36.sslip.io`)
+  - IPv4: `195.248.241.36` (resolves to `mediaz.abrdns.com` / ArvanCloud DNS)
   - Reverse Proxy: Nginx (ports 80 & 443, SSL termination, Gzip, SPA fallback)
   - Firewall: UFW active (ports 22, 80, 443 only)
   - Database Backups: Nightly atomic cronjob at 03:00 UTC (`/usr/local/bin/backup-mediqz.sh` -> `/var/backups/mediqz/`)

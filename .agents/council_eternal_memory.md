@@ -8,22 +8,22 @@
 ## 1. SYSTEM TOPOLOGY & TECH STACK
 - **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, Zustand, Lucide React icons.
   - Production build served directly via Nginx at `/var/www/mediqz/frontend/dist`.
-  - Accessible globally at `https://195-248-241-36.sslip.io`.
+  - Accessible globally at `https://mediaz.abrdns.com` (Backup: `https://195-248-241-36.sslip.io`).
 - **Backend:** FastAPI (Python 3.10+), Uvicorn, SQLite WAL (`userdata.db`, `exams.db`).
   - Managed via systemd service `mediqz.service` at `127.0.0.1:8000`.
   - Core tables: `users` (Telegram ID auth, web password fallback), `leitner_cards`, `review_logs`, `user_routines`, `eu_activity_logs`.
   - 57 Course Content Catalog: 100% generic schemas (`course_id`, `part_id`, `eu_id`). **STRICT PROTECTION:** Never hardcode course content or titles.
 - **Telegram WebApp (TWA) & Bot:**
   - Integrated with `@MediqzBot` (Token: `8882238851:AAFdbVIurZXP4nRwZ8EmvtmGwYUIFeOxc50`).
-  - Webhook URL: `https://195-248-241-36.sslip.io/api/telegram/webhook`.
-  - Chat Menu Button: "ورود به مدیاز 🚀" pointing to `https://195-248-241-36.sslip.io/`.
+  - Webhook URL: `https://mediaz.abrdns.com/api/telegram/webhook`.
+  - Chat Menu Button: "ورود به مدیاز 🚀" pointing to `https://mediaz.abrdns.com/`.
   - Direct unfiltered connection between German server and `api.telegram.org` (0% packet loss).
   - Cryptographic WebApp Authentication: Validates `window.Telegram.WebApp.initData` using standard HMAC-SHA256 against `bot_token`.
   - Telegram Magic Login Engine: Zero-password desktop login where laptop sends a push approval request to the user's `@MediqzBot` chat, and tapping «تایید ورود» on mobile Telegram automatically logs in the laptop.
   - Strict 1-to-1 Telegram Identity: Each Telegram account (`telegram_user_id`) is strictly bound to at most 1 Mediqz user account. Account linking for users who initially registered on laptop is fully supported with collision protection.
 - **Production Server Infrastructure (ParsPack Germany `deCloud2`):**
   - IPv4: `195.248.241.36`
-  - Hostname / Domain: `195-248-241-36.sslip.io`
+  - Hostname / Domain: `mediaz.abrdns.com` (Backup: `195-248-241-36.sslip.io`)
   - RAM & Swap: 2 GB RAM + 2 GB Swap (`/swapfile`), total 4 GB available memory headroom.
   - SSL Certificate: Automated Let's Encrypt TLSv1.3 via Certbot (auto-renews).
   - Web Server & Reverse Proxy: Nginx (port 80 redirects to 443; `/api/` proxies to `127.0.0.1:8000`).
