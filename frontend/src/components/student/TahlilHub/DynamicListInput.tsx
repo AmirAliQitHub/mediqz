@@ -18,9 +18,9 @@ export const DynamicListInput: React.FC<DynamicListInputProps> = ({
   onChange,
   placeholderActive,
   placeholderNext = 'افزودن مورد بعدی...',
-  badgeBgColor = 'bg-purple-500/20',
-  badgeTextColor = 'text-purple-300',
-  badgeBorderColor = 'border-purple-500/30',
+  badgeBgColor = 'bg-blue-50',
+  badgeTextColor = 'text-blue-700',
+  badgeBorderColor = 'border-blue-200',
   dimensionLabel,
 }) => {
   // Ensure there is always at least 1 editable item visible
@@ -83,7 +83,7 @@ export const DynamicListInput: React.FC<DynamicListInputProps> = ({
         return (
           <div
             key={idx}
-            className="group relative flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl bg-purple-950/40 border border-purple-500/25 backdrop-blur-xl shadow-lg shadow-purple-950/20 transition-all duration-200 focus-within:border-purple-400/60 focus-within:bg-purple-950/60 focus-within:shadow-purple-500/10"
+            className="group relative flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:border-slate-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-100 transition-all duration-200"
           >
             {/* Persian Number Badge (RTL Right side) */}
             <div
@@ -102,7 +102,7 @@ export const DynamicListInput: React.FC<DynamicListInputProps> = ({
               }}
               placeholder={idx === 0 ? placeholderActive : `${dimensionLabel || 'مورد'} ${itemNumber}...`}
               rows={1}
-              className="flex-1 bg-transparent text-purple-100 placeholder-purple-400/40 text-sm sm:text-base leading-relaxed resize-none outline-none focus:outline-none min-h-[44px] py-1 px-1 transition-colors"
+              className="flex-1 bg-transparent text-slate-800 placeholder-slate-400 text-sm sm:text-base leading-relaxed resize-none outline-none focus:outline-none min-h-[44px] py-1 px-1 transition-colors font-medium"
             />
 
             {/* Explicit 40x40px Touch Target Trash Button (Physical Left in RTL) */}
@@ -111,7 +111,7 @@ export const DynamicListInput: React.FC<DynamicListInputProps> = ({
               onClick={() => handleDeleteItem(idx)}
               title="حذف این مورد"
               aria-label={`حذف مورد ${itemNumber}`}
-              className="flex-shrink-0 w-10 h-10 -ml-1 -mt-1 rounded-xl flex items-center justify-center text-purple-400/50 hover:text-rose-400 hover:bg-rose-500/15 active:bg-rose-500/25 transition-all touch-manipulation cursor-pointer"
+              className="flex-shrink-0 w-10 h-10 -ml-1 -mt-1 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 active:bg-rose-100 transition-all touch-manipulation cursor-pointer"
             >
               <Trash2 className="w-4 h-4 sm:w-4.5 sm:h-4.5 transition-transform group-hover:scale-110" />
             </button>
@@ -131,11 +131,11 @@ export const DynamicListInput: React.FC<DynamicListInputProps> = ({
             handleActivateNext();
           }
         }}
-        className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border-2 border-dashed border-purple-400/35 bg-purple-900/15 hover:border-purple-400/60 hover:bg-purple-900/30 text-purple-300/70 hover:text-purple-100 transition-all duration-200 cursor-pointer group active:scale-[0.99] select-none touch-manipulation"
+        className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50/70 hover:border-blue-400 hover:bg-blue-50/40 text-slate-500 hover:text-blue-700 transition-all duration-200 cursor-pointer group active:scale-[0.99] select-none touch-manipulation"
       >
         <div className="flex items-center gap-3">
           {/* Grayed-out Number Badge with Next Persian Digit */}
-          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base border border-dashed border-purple-400/40 bg-purple-900/30 text-purple-300/60 group-hover:border-purple-300 group-hover:text-purple-100 group-hover:bg-purple-800/40 transition-colors">
+          <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center font-bold text-sm sm:text-base border border-dashed border-slate-300 bg-white text-slate-400 group-hover:border-blue-400 group-hover:text-blue-600 group-hover:bg-blue-50 transition-colors">
             {toPersianDigits(displayItems.length + 1)}
           </div>
           <span className="text-xs sm:text-sm font-medium tracking-wide">
@@ -143,8 +143,8 @@ export const DynamicListInput: React.FC<DynamicListInputProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-purple-400/60 group-hover:text-purple-200 transition-colors pl-1">
-          <span className="hidden sm:inline">کلیک برای افزودن</span>
+        <div className="flex items-center gap-1.5 text-xs text-slate-400 group-hover:text-blue-600 transition-colors pl-1">
+          <span className="hidden sm:inline font-medium">کلیک برای افزودن</span>
           <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
         </div>
       </div>

@@ -160,10 +160,10 @@ export const QuestionJournalView: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveView('swot')}
-            className="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+            className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
             title="ویرایش تحلیل SWOT عملکرد دوهفته"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
             <span>ویرایش SWOT دوهفته</span>
           </button>
 
